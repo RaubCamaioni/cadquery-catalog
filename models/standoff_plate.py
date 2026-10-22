@@ -17,7 +17,7 @@ def standoff_plate(
     """
     w, d = hole_spacing_x + 2 * margin + standoff_diameter, hole_spacing_y + 2 * margin + standoff_diameter
     plate = cq.Workplane("XY").box(w, d, plate_thickness, centered=(True, True, False)).edges("|Z").fillet(3)
-    points = [(sx * hole_spacing_x / 2, sy * hole_spacing_y / 2) for sx in (-1, 1) for sy in (-1, 1)]
+    points = [(ix * hole_spacing_x / 2, iy * hole_spacing_y / 2) for ix in (-1, 1) for iy in (-1, 1)]
     posts = (
         cq.Workplane("XY")
         .workplane(offset=plate_thickness)
@@ -29,7 +29,7 @@ def standoff_plate(
     # four corner holes to fix the plate itself
     fixings = (
         cq.Workplane("XY")
-        .pushPoints([(sx * (w / 2 - 4), sy * (d / 2 - 4)) for sx in (-1, 1) for sy in (-1, 1)])
+        .pushPoints([(ix * (w / 2 - 4), iy * (d / 2 - 4)) for ix in (-1, 1) for iy in (-1, 1)])
         .circle(1.8)
         .extrude(plate_thickness)
     )

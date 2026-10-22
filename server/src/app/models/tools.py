@@ -410,8 +410,8 @@ def get_arguments(tool_name: str, tool_source: str) -> dict[str, str]:
             detail = "Annotation Error: arguments to entrypoint function must have annotations"
             raise HTTPException(status_code=400, detail=detail)
         annotation = ast.unparse(arg.annotation)
-        if annotation == "Path":
-            detail = f"Argument Error: '{arg.arg}' is a Path; a model is built from numbers and choices only"
+        if annotation == "Path" and default != "None":  # no default at all parses as None: required
+            detail = f"Argument Error: '{arg.arg}' is a Path: give it a default of None and build a demo when it is None"
             raise HTTPException(status_code=400, detail=detail)
         arguments[arg.arg] = (annotation, default)
 

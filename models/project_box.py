@@ -26,9 +26,9 @@ def project_box(
         .shell(-wall)
     )
     corners = [
-        (sx * (inner_width / 2 - boss_diameter / 2), sy * (inner_depth / 2 - boss_diameter / 2))
-        for sx in (-1, 1)
-        for sy in (-1, 1)
+        (ix * (inner_width / 2 - boss_diameter / 2), iy * (inner_depth / 2 - boss_diameter / 2))
+        for ix in (-1, 1)
+        for iy in (-1, 1)
     ]
     bosses = (
         cq.Workplane("XY").workplane(offset=wall).pushPoints(corners).circle(boss_diameter / 2).extrude(inner_height)

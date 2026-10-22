@@ -41,8 +41,10 @@ def spacer(
 Rules the upload enforces:
 
 - Line 1 is a comment of comma-separated tags, used by search.
-- Parameters are `int`, `float`, `str` or `Literal[...]`, every one with a default. `Path`
-  parameters are not allowed: a model is built from numbers and choices only.
+- Parameters are `int`, `float`, `str` or `Literal[...]`, every one with a default, or `Path`
+  with a default of `None`: a file the visitor may upload (an image, an STL). When no file is
+  given, and during the validation build at upload, the model receives `None` and must build a
+  demo instead. Pillow is available for images.
 - The entrypoint returns a `cq.Workplane`, `cq.Shape` or `cq.Assembly`. It does not export
   anything itself; the runtime writes the STL, the STEP, the thumbnail and the measurements.
 - The file is reformatted with `black -l 120` and stored with a single trailing newline.

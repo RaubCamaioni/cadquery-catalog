@@ -5,6 +5,7 @@ description = "CadQuery Catalog model runtime: runs one model and exports it"
 requires-python = ">=3.10"
 dependencies = [
     "cadquery>=2.4.0",
+    "pillow>=10.0.0",
 ]
 
 [project.scripts]
