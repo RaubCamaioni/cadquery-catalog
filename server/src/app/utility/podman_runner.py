@@ -57,13 +57,6 @@ TRACE_NAME = "trace"
 TRACE_ENV = "PYWEBTOOLS_TRACE"
 TRACE_DRAIN_SECONDS = 1.0
 STARTING = "starting"
-# warm pool: containers started ahead of a job (see sandbox/runner.py `--wait`)
-WARM_PREFIX = "warm-"
-READY_FILE = "ready"  # the sandbox writes it once its preload is done
-GO_FILE = "go"  # the app writes it (the tool file name) to hand the job over
-PRELOAD_ENV = "SANDBOX_PRELOAD"
-WARM_CHECK_SECONDS = 1.0
-WARM_SWEEP_SECONDS = 60.0  # how often stray warm-* containers (unknown to the pool) are removed
 RUN_DIR_NAME_LENGTH = 32
 RUN_DIR_CHARS = string.ascii_letters + string.digits + "-_"
 
@@ -87,21 +80,7 @@ async def _read_tail(stream: asyncio.StreamReader) -> bytes:
             del tail[: len(tail) - OUTPUT_CAP_BYTES]
 
 
-async def run_podman(*argv: str, timeout: Optional[float] = None, capture: bool = True) -> tuple[int, str, str]:
-    """Run podman and return (rc, stdout, stderr). `capture=False` discards the output: a detached
-    `podman run -d` hands its pipes to the container monitor, so reading them to EOF would wait
-    for the container itself to exit.
-    """
-    if not capture:
-        devnull = asyncio.subprocess.DEVNULL
-        proc = await asyncio.create_subprocess_exec(*argv, stdin=devnull, stdout=devnull, stderr=devnull)
-        try:
-            await asyncio.wait_for(proc.wait(), timeout)
-        except asyncio.TimeoutError:
-            proc.kill()
-            await proc.wait()
-            raise
-        return proc.returncode, "", ""
+async def run_podman(*argv: str, timeout: Optional[float] = None) -> tuple[int, str, str]:
     proc = await asyncio.create_subprocess_exec(*argv, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
 
     async def finish():
@@ -149,9 +128,6 @@ class PodmanRunner:
         self._slots = asyncio.Semaphore(config.max_concurrent)
         self._unavailable_reason: Optional[str] = STARTING
         self._tasks: list[asyncio.Task] = []
-        self._warm: dict[Path, _Warm] = {}  # run directory -> its waiting container
-        self._last_request = float("-inf")  # the pool is only kept while runs are being requested
-        self._last_sweep = time.monotonic()  # first sweep after WARM_SWEEP_SECONDS
 
     @property
     def available(self) -> bool:
@@ -188,16 +164,12 @@ class PodmanRunner:
         self._tasks.append(asyncio.create_task(self._refresh_loop()))
         if not self.available:
             self._tasks.append(asyncio.create_task(self._retry_loop()))
-        if self.config.warm_pool > 0:
-            self._tasks.append(asyncio.create_task(self._warm_loop(), name="sandbox-warm"))
 
     async def stop(self):
         for task in self._tasks:
             task.cancel()
         await asyncio.gather(*self._tasks, return_exceptions=True)
         self._tasks.clear()
-        for warm in list(self._warm.values()):
-            await self._recycle(warm)
 
     async def self_test(self) -> Optional[str]:
         """Return why limits are not enforced, or None when both checks pass."""
@@ -237,7 +209,7 @@ class PodmanRunner:
 
     async def _remove_leftovers(self):
         rc, out, _ = await self._exec(
-            "podman", "ps", "-a", "--filter", "name=^(run|warm)-", "--format", "{{.Names}}", timeout=PODMAN_CALL_TIMEOUT
+            "podman", "ps", "-a", "--filter", "name=^run-", "--format", "{{.Names}}", timeout=PODMAN_CALL_TIMEOUT
         )
         if rc != 0:
             return
@@ -283,10 +255,6 @@ class PodmanRunner:
                 rc, _, err = await self._exec("podman", "pull", self.config.image, timeout=PULL_TIMEOUT)
                 if rc != 0:
                     logger.warning(f"sandbox image refresh failed: {err.strip()}")
-                else:
-                    # idle warm containers still run the old image: replace them
-                    for warm in [w for w in self._warm.values() if not w.taken]:
-                        await self._recycle(warm)
             except Exception as e:
                 logger.warning(f"sandbox image refresh raised: {e}")
 
@@ -352,8 +320,6 @@ class PodmanRunner:
         except asyncio.TimeoutError:
             raise SandboxBusy()
         try:
-            if run_dir in self._warm:
-                return await self._supervise_warm(tool, run_dir, on_line)
             return await self._supervise(tool, run_dir, on_line)
         finally:
             self._slots.release()
@@ -418,12 +384,7 @@ class PodmanRunner:
             logger.warning(f"{name}: could not inspect container state")
             return None, False
 
-    # --- warm pool -----------------------------------------------------------------
-    # A warm container is `podman run -d ... <image> --wait <ttl>`: it preloads the slow imports,
-    # writes READY_FILE into its run directory and waits for GO_FILE. new_run_dir() hands that
-    # directory to the request, which writes the tool and args into it as usual; run() then drops
-    # GO_FILE and waits for the container to exit. One job per container, so isolation is unchanged;
-    # only the import time moves ahead of the request.
+    # --- run directories ------------------------------------------------------------
 
     def make_run_dir(self) -> Path:
         """A fresh, secret, world-writable run directory under the configured root."""
@@ -435,150 +396,8 @@ class PodmanRunner:
         return run_dir
 
     def new_run_dir(self) -> Path:
-        """The run directory for a request: a warm container's, else a fresh one. A container still
-        preloading is handed out too: the sandbox looks for the job only once its imports are done,
-        so the job starts the moment they are, always sooner than a cold start would.
-        """
-        self._last_request = time.monotonic()
-        idle = [w for w in self._warm.values() if not w.taken]
-        if idle:
-            ready = [w for w in idle if (w.run_dir / READY_FILE).exists()]
-            warm = min(ready or idle, key=lambda w: w.created)
-            warm.taken = True
-            return warm.run_dir
+        """The run directory for a request."""
         return self.make_run_dir()
-
-    def warm_command(self, name: str, run_dir: Path) -> list[str]:
-        flags = self._limit_flags()
-        # the container may idle for the whole ttl before its job starts
-        i = flags.index(f"--timeout={int(self.config.timeout_seconds)}")
-        flags[i] = f"--timeout={int(self.config.warm_ttl_seconds + self.config.timeout_seconds + SAFETY_NET_SECONDS)}"
-        i = flags.index("--tmpfs=/tmp:rw,size=64m")
-        flags[i : i + 1] = ["--tmpfs", "/tmp:rw,size=64m"]
-        return [
-            "podman",
-            "run",
-            "-d",
-            "--name",
-            name,
-            *flags,
-            "-v",
-            f"{run_dir}:{run_dir}:U",
-            "-e",
-            f"{TRACE_ENV}={run_dir / TRACE_NAME}",
-            "-e",
-            f"{PRELOAD_ENV}={self.config.preload}",
-            self.config.image,
-            "--wait",
-            str(self.config.warm_ttl_seconds),
-            "--workdir",
-            str(run_dir),
-        ]
-
-    async def _warm_loop(self):
-        while True:
-            try:
-                await self._tend_warm()
-            except Exception as e:
-                logger.warning(f"warm pool: {e}")
-            await self._sleep(WARM_CHECK_SECONDS)
-
-    async def _tend_warm(self):
-        """Retire idle containers past their ttl and, while the site is in use, keep `warm_pool` of them
-        waiting. In use means a run was requested within the ttl: an idle site runs no containers at
-        all, the first request after a quiet spell pays the cold start, the ones after it do not.
-        """
-        if not self.available:
-            return
-        now = time.monotonic()
-        for warm in list(self._warm.values()):
-            if not warm.taken and now - warm.created >= self.config.warm_ttl_seconds:
-                await self._recycle(warm)
-        idle = sum(1 for w in self._warm.values() if not w.taken)
-        in_use = now - self._last_request < self.config.warm_ttl_seconds
-        for _ in range(self.config.warm_pool - idle if in_use else 0):
-            await self._start_warm()
-        if now - self._last_sweep >= WARM_SWEEP_SECONDS:
-            self._last_sweep = now
-            await self._sweep_strays()
-
-    async def _sweep_strays(self):
-        """Remove warm-* containers the pool does not know (a start reported failed, an app restart)."""
-        rc, out, _ = await self._podman("ps", "-a", "--filter", f"name=^{WARM_PREFIX}", "--format", "{{.Names}}")
-        if rc != 0:
-            return
-        known = {w.name for w in self._warm.values()}
-        for name in out.split():
-            if name not in known:
-                logger.warning(f"removing stray warm container {name}")
-                await self._podman("rm", "-f", name)
-
-    async def _start_warm(self):
-        run_dir = self.make_run_dir()
-        name = WARM_PREFIX + run_dir.name
-        try:
-            rc, _, err = await self._exec(*self.warm_command(name, run_dir), timeout=PODMAN_CALL_TIMEOUT, capture=False)
-        except Exception as e:
-            rc, err = 1, f"{type(e).__name__}: {e}"
-        if rc != 0:
-            logger.warning(f"warm container failed to start: {err.strip()}")
-            await self._podman("rm", "-f", name)
-            shutil.rmtree(run_dir, ignore_errors=True)
-            return
-        self._warm[run_dir] = _Warm(name=name, run_dir=run_dir, created=time.monotonic())
-
-    async def _recycle(self, warm: "_Warm"):
-        """Drop a warm container that was never used (ttl, image refresh, shutdown)."""
-        self._warm.pop(warm.run_dir, None)
-        await self._podman("rm", "-f", warm.name)
-        await self._podman("unshare", "chown", "-R", "0:0", str(warm.run_dir))
-        shutil.rmtree(warm.run_dir, ignore_errors=True)
-
-    async def _supervise_warm(self, tool: Path, run_dir: Path, on_line: Optional[Callable[[int], None]]) -> RunResult:
-        warm = self._warm.pop(run_dir)
-        name = warm.name
-        timed_out = False
-        stderr = ""
-        exit_code: Optional[int] = None
-        oom_killed = False
-        trace = _open_trace(run_dir) if on_line is not None else None
-        reader = None
-        if trace is not None:
-            reader = asyncio.create_task(read_trace(trace.rfd, _line_count(tool), on_line))
-        started = time.monotonic()
-        try:
-            # hand the job over: the sandbox polls for GO_FILE, written atomically
-            go = run_dir / GO_FILE
-            go.with_suffix(".tmp").write_text(tool.name, encoding="utf-8")
-            os.replace(go.with_suffix(".tmp"), go)
-            try:
-                rc, out, err = await self._exec(
-                    "podman", "wait", name, timeout=self.config.timeout_seconds + SAFETY_NET_SECONDS
-                )
-                if rc != 0:
-                    stderr = err
-            except asyncio.TimeoutError:
-                timed_out = True
-                logger.warning(f"{name}: job exceeded the limit, killing container")
-                await self._podman("kill", name)
-            except Exception as e:
-                logger.exception(f"{name}: podman wait failed")
-                stderr = f"{type(e).__name__}: {e}"
-            exit_code, oom_killed = await self._inspect(name)
-            if not stderr:
-                rc, out, err = await self._podman("logs", "--tail", str(STDERR_TAIL_LINES), name)
-                if rc == 0:
-                    stderr = err or out
-        finally:
-            elapsed = time.monotonic() - started
-            await self._podman("rm", "-f", name)
-            await self._podman("unshare", "chown", "-R", "0:0", str(run_dir))
-            if trace is not None:
-                await trace.finish(reader)
-            for leftover in (GO_FILE, READY_FILE):
-                with suppress(OSError):
-                    (run_dir / leftover).unlink()
-        return self.classify(run_dir, exit_code, oom_killed, elapsed, stderr, timed_out)
 
     # --- outcome -----------------------------------------------------------------
 
@@ -613,14 +432,6 @@ class PodmanRunner:
                 Outcome.TIMEOUT, message=f"Tool exceeded the {cfg.timeout_seconds:g} second limit", stderr_tail=tail
             )
         return RunResult(Outcome.CRASHED, message="Tool failed to run", stderr_tail=tail)
-
-
-@dataclass
-class _Warm:
-    name: str
-    run_dir: Path
-    created: float
-    taken: bool = False  # handed to a request by new_run_dir(); run() consumes it
 
 
 @dataclass

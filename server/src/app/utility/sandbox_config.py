@@ -18,11 +18,6 @@ class SandboxConfig:
     pids: int
     run_dir: Path
     max_output_mb: int = 64  # run directory size after a run; larger output is discarded
-    # warm pool: this many sandbox containers are started ahead of time with `preload` imported,
-    # each waiting up to warm_ttl_seconds for one job; 0 starts every container on demand
-    warm_pool: int = 0
-    preload: str = ""
-    warm_ttl_seconds: float = 600.0
 
     @classmethod
     def from_environment(cls, env: Mapping[str, str]) -> "SandboxConfig":
@@ -36,9 +31,6 @@ class SandboxConfig:
             pids=int(env.get("SANDBOX_PIDS", "64")),
             run_dir=Path(env.get("SANDBOX_RUN_DIR", "/tmp/pywebtools-runs")),
             max_output_mb=int(env.get("SANDBOX_MAX_OUTPUT_MB", "64")),
-            warm_pool=int(env.get("SANDBOX_WARM_POOL", "0")),
-            preload=env.get("SANDBOX_PRELOAD", ""),
-            warm_ttl_seconds=float(env.get("SANDBOX_WARM_TTL_SECONDS", "600")),
         )
 
     @property

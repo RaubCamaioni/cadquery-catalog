@@ -74,7 +74,7 @@ and the release flow. The differences are the names:
 | Secrets file in the container | `/run/secrets/pywebtools.env` | `/run/secrets/catalog.env` |
 | Extra variable | | `MODELS_DIR`: where default STL/STEP builds are kept (default: beside the database) |
 | Commit file | `/etc/pytools-commit` | `/etc/catalog-commit` |
-| Warm pool | | `SANDBOX_WARM_POOL=1` keeps a sandbox container started ahead of each build with `SANDBOX_PRELOAD=cadquery` already imported (the import costs about six seconds; a container start half a second). One job per container, retired after `SANDBOX_WARM_TTL_SECONDS` (600) if unused. |
+| Import trim | | The sandbox image stubs VTK and ezdxf (`sandbox/stubs`, first on `PYTHONPATH`) and pins CadQuery's version lookup at build time: CadQuery only needs them for Jupyter display and DXF, and they cost about 1.5 s of every build. Nothing is kept running between builds. |
 
 ```bash
 cd server && python -m venv .venv && .venv/bin/pip install -e ".[dev]"
