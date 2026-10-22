@@ -434,11 +434,16 @@ class PodmanRunner:
         return run_dir
 
     def new_run_dir(self) -> Path:
-        """The run directory for a request: a ready warm container's, else a fresh one."""
-        for run_dir, warm in self._warm.items():
-            if not warm.taken and (run_dir / READY_FILE).exists():
-                warm.taken = True
-                return run_dir
+        """The run directory for a request: a warm container's, else a fresh one. A container still
+        preloading is handed out too: the sandbox looks for the job only once its imports are done,
+        so the job starts the moment they are, always sooner than a cold start would.
+        """
+        idle = [w for w in self._warm.values() if not w.taken]
+        if idle:
+            ready = [w for w in idle if (w.run_dir / READY_FILE).exists()]
+            warm = min(ready or idle, key=lambda w: w.created)
+            warm.taken = True
+            return warm.run_dir
         return self.make_run_dir()
 
     def warm_command(self, name: str, run_dir: Path) -> list[str]:

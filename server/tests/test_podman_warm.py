@@ -38,13 +38,21 @@ async def test_new_run_dir_prefers_a_ready_warm_directory(tmp_path):
     runner = warm_runner(fake, tmp_path)
     await runner._tend_warm()
     warm_dir = next(iter(runner._warm))
-    # not ready yet (preload still running): the request gets a fresh directory
+    # still preloading: handed out anyway, the job starts when the imports are done
+    assert runner.new_run_dir() == warm_dir
+    # taken: handed out once only; the next request gets a fresh directory
     fresh = runner.new_run_dir()
     assert fresh != warm_dir and fresh.is_dir()
-    (warm_dir / READY_FILE).write_text("")
-    assert runner.new_run_dir() == warm_dir
-    # taken: handed out once only
-    assert runner.new_run_dir() != warm_dir
+
+
+async def test_new_run_dir_prefers_a_ready_container_over_a_preloading_one(tmp_path):
+    fake = FakePodman()
+    runner = warm_runner(fake, tmp_path, SANDBOX_WARM_POOL=2)
+    await runner._tend_warm()
+    older, newer = sorted(runner._warm.values(), key=lambda w: w.created)
+    (newer.run_dir / READY_FILE).write_text("")
+    assert runner.new_run_dir() == newer.run_dir
+    assert runner.new_run_dir() == older.run_dir
 
 
 async def test_warm_run_hands_the_job_over_and_waits_for_the_container(tmp_path):
