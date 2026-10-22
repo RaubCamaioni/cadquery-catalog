@@ -75,9 +75,11 @@ def _run(file: Path) -> None:
 
     func: Callable[[Any], Any] = getattr(module, module_name, None)
 
+    failed = False
     try:
         results = partial(func, **args)()
     except Exception as e:
+        failed = True
         _, _, exc_traceback = sys.exc_info()
         frames = traceback.extract_tb(exc_traceback)
 
@@ -89,8 +91,9 @@ def _run(file: Path) -> None:
 
         print(results)
 
-    # a model returns a CadQuery object; the files the site serves are made from it here
-    if not isinstance(results, str):
+    # a model returns a CadQuery object; the files the site serves are made from it here. Anything
+    # else it returns (a string included) is reported by the export step, not passed off as a result
+    if not failed:
         try:
             results = export_model(results)
         except Exception as e:
