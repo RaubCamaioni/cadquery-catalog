@@ -5,14 +5,16 @@ from app.models import tools
 from app.models.tools import SessionDep, User, FilterDep, get_user
 from app.routes.auth import session_user
 from pathlib import Path
-from app import TEMPLATES, logger
+from app import TEMPLATES, ENVIRONMENT, logger
+from app.routes.tools import Tempdir
+import shutil
 from typing import Optional
 from urllib.parse import parse_qsl
 
 router = APIRouter()
 
 
-@router.delete("/manage/tool/delete/{id}", response_class=HTMLResponse)
+@router.delete("/manage/model/delete/{id}", response_class=HTMLResponse)
 async def tool_delete(
     request: Request,
     id: int,
@@ -37,7 +39,7 @@ async def tool_delete(
     return HTMLResponse(status_code=200)
 
 
-@router.get("/manage/tool/upload", response_class=HTMLResponse)
+@router.get("/manage/model/upload", response_class=HTMLResponse)
 async def tool_upload_get(request: Request):
     return TEMPLATES.TemplateResponse(
         request,
@@ -50,13 +52,38 @@ async def tool_upload_get(request: Request):
     )
 
 
-@router.post("/manage/tool/upload", response_class=HTMLResponse)
-@router.post("/manage/tool/update/{id}", response_class=HTMLResponse)
+async def validate_model(tool: tools.Tool, temp_dir: Path) -> dict:
+    """Build the model once with its defaults in the sandbox. Returns the export dict (stl, step,
+    preview, meta) or raises a 400 with the reason the build failed; an upload that cannot build
+    is never stored.
+    """
+    from app.routes.tools import _coerce, build_failure, build_model
+
+    result = await build_model(tool, _coerce(tool, {}), temp_dir)
+    failure = build_failure(result)
+    if failure is not None:
+        raise HTTPException(status_code=400, detail=f"Model Build Failed: {failure}")
+    return result.results
+
+
+def store_default_build(tool: tools.Tool, build: dict) -> None:
+    """Keep the default STL and STEP beside the database and the thumbnail and measurements on the row."""
+    target = ENVIRONMENT.MODELS_DIR / str(tool.id)
+    target.mkdir(parents=True, exist_ok=True)
+    for key, name in (("stl", "model.stl"), ("step", "model.step")):
+        shutil.copyfile(build[key], target / name)
+    tool.preview_svg = Path(build["preview"]).read_text(encoding="utf-8")
+    tool.meta = build["meta"]
+
+
+@router.post("/manage/model/upload", response_class=HTMLResponse)
+@router.post("/manage/model/update/{id}", response_class=HTMLResponse)
 async def tool_upload_post(
     request: Request,
     file: UploadFile,
     session: SessionDep,
     filter: FilterDep,
+    temp_dir: Tempdir,
     id: Optional[int] = None,
 ):
     if "user" not in request.session:
@@ -74,22 +101,24 @@ async def tool_upload_post(
         raise HTTPException(status_code=400, detail="Blocked by profanity filter.")
 
     db_tool: Optional[tools.Tool] = tools.get_tool(session, id)
+    if db_tool is not None and db_tool.user_id != user.id:
+        raise HTTPException(status_code=404, detail="Model does not belong to you.")
+
+    tool = tools.create_tool(user.id, Path(name).stem, code.decode())
+    build = await validate_model(tool, temp_dir)
 
     if db_tool is None:
-        tool = tools.create_tool(user.id, Path(name).stem, code.decode())
-        if tool is None:
-            raise HTTPException(status_code=404, detail="Error creating tool.")
         session.add(tool)
         session.commit()
-
+        session.refresh(tool)
+        store_default_build(tool, build)
+        session.commit()
     else:
-        tool = tools.create_tool(user.id, Path(name).stem, code.decode())
-        if tool is None:
-            return HTTPException(status_code=404, detail="Error updating tool.")
         db_tool.name = tool.name
         db_tool.code = tool.code
         db_tool.arguments = tool.arguments
         db_tool.tags = tool.tags
+        store_default_build(db_tool, build)
         session.commit()
 
     return HTMLResponse(status_code=200)
@@ -117,7 +146,7 @@ async def user_settings(
     return HTMLResponse(status_code=200)
 
 
-@router.post("/manage/tool/settings/{id}", response_class=HTMLResponse)
+@router.post("/manage/model/settings/{id}", response_class=HTMLResponse)
 async def tool_set_public(
     request: Request,
     session: SessionDep,

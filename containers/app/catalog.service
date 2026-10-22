@@ -1,11 +1,11 @@
 # systemd user unit (user `podman`) that runs the web app inside the app container.
 [Unit]
-Description=PyTools web app
+Description=CadQuery Catalog web app
 After=default.target
 
 [Service]
-ExecStart=/venvs/server/bin/pywebtool
-EnvironmentFile=/run/secrets/pywebtools.env
+ExecStart=/venvs/server/bin/catalog
+EnvironmentFile=/run/secrets/catalog.env
 Environment=PYTHONUNBUFFERED=1
 Restart=always
 RestartSec=3

@@ -27,7 +27,7 @@ jobs:
           jwt=$(curl -sf -X POST https://hub.docker.com/v2/users/login/ \
             -H "Content-Type: application/json" \
             -d "{\"username\": \"$HUB_USER\", \"password\": \"$HUB_TOKEN\"}" | jq -r .token)
-          for repo in pywebtools pywebtools-sandbox; do
+          for repo in cadquery-catalog cadquery-catalog-sandbox; do
             echo "== $HUB_USER/$repo"
             url="https://hub.docker.com/v2/repositories/$HUB_USER/$repo/tags?page_size=100"
             tags=""

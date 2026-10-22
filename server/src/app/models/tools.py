@@ -58,7 +58,9 @@ class Tool(SQLModel, table=True):
     down_votes: list["DownVote"] = Relationship(back_populates="tool")
     reports: list["Report"] = Relationship(back_populates="tool")
     usage: int = Field(default=0)
-    # fails: int = Field(default=0)
+    # from the validation run at upload: the thumbnail (an SVG line drawing) and the measurements
+    preview_svg: str = Field(default="")
+    meta: dict = Field(default={}, sa_column=Column(JSON))
     public: bool = Field(default=False)
     annonymous: bool = Field(default=True)
     user_id: int = Field(default=None, foreign_key="user.id")
@@ -288,6 +290,8 @@ MIGRATIONS = [
     ("user", "admin", "BOOLEAN NOT NULL DEFAULT 0"),
     ("user", "banned", "BOOLEAN NOT NULL DEFAULT 0"),
     ("user", "banned_until", "DATETIME"),
+    ("tool", "preview_svg", "TEXT NOT NULL DEFAULT ''"),
+    ("tool", "meta", "JSON"),
 ]
 
 
@@ -396,7 +400,11 @@ def get_arguments(tool_name: str, tool_source: str) -> dict[str, str]:
         if not arg.annotation:
             detail = "Annotation Error: arguments to entrypoint function must have annotations"
             raise HTTPException(status_code=400, detail=detail)
-        arguments[arg.arg] = (ast.unparse(arg.annotation), default)
+        annotation = ast.unparse(arg.annotation)
+        if annotation == "Path":
+            detail = f"Argument Error: '{arg.arg}' is a Path; a model is built from numbers and choices only"
+            raise HTTPException(status_code=400, detail=detail)
+        arguments[arg.arg] = (annotation, default)
 
     return arguments
 

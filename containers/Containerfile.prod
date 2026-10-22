@@ -28,21 +28,21 @@ RUN mkdir -p /home/podman/.local/share/containers && chown -R podman:podman /hom
 # the commit the image was built from, shown bottom-right on every page (CI passes GIT_SHA).
 # A file, not ENV: the app is a systemd user service and does not inherit the container environment.
 ARG GIT_SHA=
-RUN echo "$GIT_SHA" > /etc/pytools-commit
+RUN echo "$GIT_SHA" > /etc/catalog-commit
 
 # server dependencies first (cached layer unless pyproject.toml changes), then the code itself
 COPY server/pyproject.toml /tmp/server/pyproject.toml
 RUN python3.12 -m venv /venvs/server && \
   /venvs/server/bin/pip install --no-cache-dir /tmp/server && \
-  /venvs/server/bin/pip uninstall -y pytools
+  /venvs/server/bin/pip uninstall -y cadquery-catalog
 COPY server /tmp/server
 RUN /venvs/server/bin/pip install --no-cache-dir --no-deps /tmp/server && \
   rm -rf /tmp/server
 
 # the app as a systemd user service of `podman`
-COPY --chown=podman:podman containers/app/pywebtools.service /home/podman/.config/systemd/user/pywebtools.service
+COPY --chown=podman:podman containers/app/catalog.service /home/podman/.config/systemd/user/catalog.service
 RUN mkdir -p /home/podman/.config/systemd/user/default.target.wants && \
-  ln -s ../pywebtools.service /home/podman/.config/systemd/user/default.target.wants/pywebtools.service && \
+  ln -s ../catalog.service /home/podman/.config/systemd/user/default.target.wants/catalog.service && \
   chown -R podman:podman /home/podman/.config && \
   mkdir -p /data && chown podman:podman /data
 

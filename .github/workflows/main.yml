@@ -1,4 +1,4 @@
-name: Build and publish PyTools images
+name: Build and publish CadQuery Catalog images
 
 # Every push and pull request builds both images to prove they build. Images are published
 # (pushed to Docker Hub as `latest`, which the server deploys) only for a release tag
@@ -15,7 +15,7 @@ on:
   workflow_dispatch:
     inputs:
       publish:
-        description: "Publish the images as latest (deploys to pywebtools.com)"
+        description: "Publish the images as latest (deploys to raubcamaioni.com/catalog)"
         type: boolean
         default: true
 
@@ -42,7 +42,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ secrets.DOCKER_USERNAME }}/pywebtools
+          images: ${{ secrets.DOCKER_USERNAME }}/cadquery-catalog
           # only two tags per release (latest and the version) so Docker Hub is not littered with
           # one tag per commit; a manual deploy is tagged with its commit so it can be told apart
           tags: |
@@ -87,7 +87,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ secrets.DOCKER_USERNAME }}/pywebtools-sandbox
+          images: ${{ secrets.DOCKER_USERNAME }}/cadquery-catalog-sandbox
           # only two tags per release (latest and the version) so Docker Hub is not littered with
           # one tag per commit; a manual deploy is tagged with its commit so it can be told apart
           tags: |

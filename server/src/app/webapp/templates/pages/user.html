@@ -8,7 +8,7 @@
 
     <body class="bg-ink text-paper font-mono">
 
-        {% set cwd = '~/tools' %}
+        {% set cwd = '~/catalog' %}
         {% include 'components/header.html'%}
 
         <div class="max-w-4xl mx-auto px-4 flex flex-col gap-6">
@@ -34,7 +34,7 @@
                 <div class="prompt font-bold mb-1">ls -l tools/ | column -t</div>
                 {# the upload row and the tool rows reload on page load and whenever an upload sends "refresh" #}
                 <ul id="tool-rows" class="tool-table"
-                    hx-post="{{ root_path }}/user/tools"
+                    hx-post="{{ root_path }}/user/models"
                     hx-trigger="load, refresh"
                     hx-swap="innerHTML">
                     <li class="px-1 text-dim">...</li>

@@ -40,7 +40,7 @@ async def runner(config):
 
 @pytest.fixture
 def make_run(config):
-    """Create a run directory the way routes/tools.py does; clean up afterwards."""
+    """Create a run directory the way routes/models.py does; clean up afterwards."""
     created = []
 
     def _make(name, code, args=None):

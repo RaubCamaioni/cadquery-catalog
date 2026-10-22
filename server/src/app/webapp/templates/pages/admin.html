@@ -12,7 +12,7 @@
 
         <div class="max-w-4xl mx-auto px-4 flex flex-col gap-6">
             <section>
-                <div class="prompt font-bold mb-1">ls -l /home/*/tools/ | column -t</div>
+                <div class="prompt font-bold mb-1">ls -l /home/*/models/ | column -t</div>
                 {# one table: an account row, then that account's tools indented under it #}
                 <ul class="tool-table" style="--cols: 7">
                     <li class="contents text-dim">
@@ -61,14 +61,14 @@
                     <li id="tools-{{ account.user.id }}" class="contents hidden"><ul class="contents">
                     {% for item in account.tools %}
                     <li class="contents">
-                        <span class="px-1 py-0.5 pl-4"><a href="{{ root_path }}/tool/{{ item.tool.id }}" class="no-underline hover:bg-paper hover:text-ink">{{ item.tool.name }}.py</a></span>
+                        <span class="px-1 py-0.5 pl-4"><a href="{{ root_path }}/model/{{ item.tool.id }}" class="no-underline hover:bg-paper hover:text-ink">{{ item.tool.name }}.py</a></span>
                         <span class="px-1 py-0.5 text-dim">{{ 'public' if item.tool.public else 'private' }}{{ ' anonymous' if item.tool.annonymous else '' }}</span>
                         <span class="px-1 py-0.5 text-right text-dim">{{ item.tool.usage }}</span>
                         <span class="px-1 py-0.5 text-right text-dim">{{ item.up }}</span>
                         <span class="px-1 py-0.5 text-right text-dim">{{ item.down }}</span>
                         <span class="px-1 py-0.5 text-right {{ 'font-bold' if item.reports else 'text-dim' }}">{{ item.reports }}</span>
                         <span class="px-1 py-0.5 text-dim">
-                            <a hx-delete="{{ root_path }}/manage/tool/delete/{{ item.tool.id }}" hx-trigger="click"
+                            <a hx-delete="{{ root_path }}/manage/model/delete/{{ item.tool.id }}" hx-trigger="click"
                                hx-confirm="Delete {{ account.user.alias }}'s {{ item.tool.name }}.py?" hx-target="closest li"
                                class="cursor-pointer no-underline px-1 hover:bg-paper hover:text-ink">[delete]</a>
                         </span>

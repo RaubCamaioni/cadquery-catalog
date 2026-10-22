@@ -8,13 +8,13 @@
     <button
         class="px-1 cursor-pointer {% if my_vote == 'up' %}switch-on{% else %}hover:bg-paper hover:text-ink{% endif %}"
         title="upvote: this tool is useful"
-        hx-post="{{ root_path }}/tool/{{ tool_id }}/vote?direction=up"
+        hx-post="{{ root_path }}/model/{{ tool_id }}/vote?direction=up"
         hx-target="#tool-votes"
         hx-swap="outerHTML">[up {{ up }}]</button>
     <button
         class="px-1 cursor-pointer {% if my_vote == 'down' %}switch-on{% else %}hover:bg-paper hover:text-ink{% endif %}"
         title="downvote: this tool is not useful"
-        hx-post="{{ root_path }}/tool/{{ tool_id }}/vote?direction=down"
+        hx-post="{{ root_path }}/model/{{ tool_id }}/vote?direction=down"
         hx-target="#tool-votes"
         hx-swap="outerHTML">[down {{ down }}]</button>
     {% if reported %}
@@ -24,7 +24,7 @@
         <button class="px-1 cursor-pointer hover:bg-paper hover:text-ink" title="report: tell the admin this tool is harmful or broken"
             _="on click remove .hidden from #report-form then call #report-reason.focus()">[report]</button>
         <form id="report-form" class="hidden flex items-center gap-2 basis-full"
-            hx-post="{{ root_path }}/tool/{{ tool_id }}/report"
+            hx-post="{{ root_path }}/model/{{ tool_id }}/report"
             hx-target="#tool-votes"
             hx-swap="outerHTML"
             onsubmit="event.preventDefault()"

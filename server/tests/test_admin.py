@@ -138,9 +138,9 @@ def test_admin_page_lists_accounts_and_their_tools(monkeypatch):
         ],
     )
     page = client(monkeypatch, StubRunner()).get("/admin").text
-    assert "ls -l /home/*/tools/ | column -t" in page
+    assert "ls -l /home/*/models/ | column -t" in page
     assert page.index("rob/ ") < page.index("a.py") < page.index("eve/ ") < page.index("b.py")
-    assert 'href="/tool/6"' in page  # private tools are linked for the admin
+    assert 'href="/model/6"' in page  # private tools are linked for the admin
     assert "banned until 2026-11-20" in page and "[unban]" in page  # eve
     assert page.count('value="1">1 month') == 0 or True
     assert "[delete]" in page  # admins can remove a single offending tool
@@ -173,9 +173,9 @@ def test_admin_can_delete_another_users_tool(monkeypatch):
     monkeypatch.setattr(upload_routes.tools, "get_tool", lambda session, id: tool)
     monkeypatch.setattr(upload_routes.tools, "del_tool", lambda session, t: deleted.append(t.id))
     monkeypatch.setattr(upload_routes, "session_user", lambda request: db.User(id=1, alias="rob", admin=True))
-    assert client(monkeypatch, StubRunner()).delete("/manage/tool/delete/6").status_code == 200 and deleted == [6]
+    assert client(monkeypatch, StubRunner()).delete("/manage/model/delete/6").status_code == 200 and deleted == [6]
     monkeypatch.setattr(upload_routes, "session_user", lambda request: db.User(id=3, alias="eve"))
-    assert client(monkeypatch, StubRunner()).delete("/manage/tool/delete/6").status_code == 404 and deleted == [6]
+    assert client(monkeypatch, StubRunner()).delete("/manage/model/delete/6").status_code == 404 and deleted == [6]
 
 
 def test_admin_opens_a_private_tool_page(monkeypatch, tmp_path):
@@ -189,9 +189,9 @@ def test_admin_opens_a_private_tool_page(monkeypatch, tmp_path):
     env = tools_routes.ENVIRONMENT
     monkeypatch.setattr(tools_routes, "ENVIRONMENT", dataclasses.replace(env, sandbox=dataclasses.replace(env.sandbox, run_dir=tmp_path)))
     c = client(monkeypatch, StubRunner())
-    assert c.get("/tool/9").status_code == 404  # anonymous
+    assert c.get("/model/9").status_code == 404  # anonymous
     monkeypatch.setattr(tools_routes, "session_user", lambda request: db.User(id=1, alias="rob", admin=True))
-    assert c.get("/tool/9").status_code == 200
+    assert c.get("/model/9").status_code == 200
 
 
 def test_banned_user_cannot_log_in(monkeypatch):

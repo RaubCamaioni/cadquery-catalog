@@ -1,3 +1,6 @@
-<li>
-	<a href="{{ base_url }}/tool/{{ id }}" class="block truncate px-1 no-underline hover:bg-paper hover:text-ink">{{ name }}.py</a>
+<li class="card">
+	<a href="{{ base_url }}/model/{{ id }}" class="block no-underline">
+		<img src="{{ base_url }}/model/{{ id }}/preview.svg" alt="" loading="lazy">
+		<span class="block truncate px-1">{{ name }}</span>
+	</a>
 </li>

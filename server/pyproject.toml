@@ -1,7 +1,7 @@
 [project]
-name = "pytools"
-version = "0.3.2"
-description = "Python script execution web wrapper."
+name = "cadquery-catalog"
+version = "0.1.0"
+description = "Parametric CadQuery models, customised in the browser."
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
@@ -18,7 +18,7 @@ dependencies = [
 line-length = 120
 
 [project.scripts]
-pywebtool = "app.runner:runner"
+catalog = "app.runner:runner"
 
 [project.optional-dependencies]
 dev = ["pytest>=8", "pytest-asyncio>=0.24"]

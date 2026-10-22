@@ -1,69 +1,10 @@
 [project]
 name = "sandbox"
 version = "0.1.0"
-description = "sandbox utiltiies and dependencies"
+description = "CadQuery Catalog model runtime: runs one model and exports it"
 requires-python = ">=3.10"
 dependencies = [
-    "cadquery>=2.3.0",
-    "ezdxf>=1.3.4",
-    "numpy>=2.2.4",
-    "opencv-python-headless>=4.11.0.86,<5",
-    "pandas>=2.2.3",
-    "av>=14.2.1",
-    "pydantic>=2.11.3",
-    "pymupdf>=1.25.5",
-    "pyparsing>=3.2.3",
-    "requests>=2.32.3",
-    "scipy>=1.15.2",
-    # converter tool support (added 2026-10-19)
-    "pillow>=11.0.0",
-    "pillow-heif>=0.20.0",
-    "pyyaml>=6.0.2",
-    "qrcode>=8.0",
-    "openpyxl>=3.1.5",
-    "python-docx>=1.1.2",
-    "python-pptx>=1.0.2",
-    "markdown>=3.7",
-    "tzdata>=2025.1",
-    "num2words>=0.5.14",
-    "xmltodict>=0.14.2",
-    "tomli-w>=1.1.0",
-    "py7zr>=0.22.0",
-    # document / media converters (added 2026-10-20)
-    "pdf2docx>=0.5.8",
-    "mammoth>=1.9.0",
-    "pymupdf4llm>=0.0.21,<1",
-    "ebooklib>=0.18",
-    "rawpy>=0.24.0",
-    # batch three: developer, security, media and reference tools (added 2026-10-20)
-    "cryptography>=43.0.0",
-    "bcrypt>=4.2.0",
-    "cron-descriptor>=1.4.5",
-    "croniter>=3.0.0",
-    "jmespath>=1.0.1",
-    "jsonschema>=4.23.0",
-    "sqlparse>=0.5.0",
-    "jsbeautifier>=1.15.0",
-    "cssbeautifier>=1.15.0",
-    "rcssmin>=1.1.2",
-    "rjsmin>=1.2.2",
-    "black>=24.0.0",
-    "python-stdnum>=1.20",
-    "phonenumbers>=8.13.0",
-    "faker>=30.0.0",
-    "python-barcode>=0.15.1",
-    "mutagen>=1.47.0",
-    "fonttools>=4.55.0",
-    "brotli>=1.1.0",
-    "trimesh>=4.5.0",
-    "striprtf>=0.0.28",
-    "pyzipper>=0.3.6",
-    "pyfiglet>=1.0.2",
-    "zxcvbn>=4.4.28",
-    "astral>=3.2",
-    "networkx>=3.0",
-    "ua-parser>=1.0.0",
-    "scour>=0.38.2",
+    "cadquery>=2.4.0",
 ]
 
 [project.scripts]

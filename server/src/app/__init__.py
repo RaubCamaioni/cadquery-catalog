@@ -22,8 +22,10 @@ class _ENVIRONMENT:
     GITHUB_REDIRECT_URI: str = os.environ.get("GITHUB_REDIRECT_URI", "https://pywebtools.com/auth/github")
     # the GitHub account that owns the tools uploaded under the original (Google) account
     OWNER_GITHUB_LOGIN: str = os.environ.get("OWNER_GITHUB_LOGIN", "RaubCamaioni")
-    # the URL prefix the app is served under, e.g. "/tools" behind a reverse proxy; "" at the root
+    # the URL prefix the app is served under, e.g. "/models" behind a reverse proxy; "" at the root
     ROOT_PATH: str = os.environ.get("ROOT_PATH", "").rstrip("/")
+    # the default STL and STEP of every model (from its validation run) live here, beside the database
+    MODELS_DIR: Path = Path(os.environ.get("MODELS_DIR") or (Path(os.environ.get("DATABASE") or "/data/db").parent / "models"))
     # SANDBOX_* variables all have defaults; see SandboxConfig
     sandbox: SandboxConfig = field(default_factory=lambda: SandboxConfig.from_environment(os.environ))
 
@@ -65,7 +67,7 @@ def _commit_sha() -> str:
     if os.environ.get("PYTOOLS_COMMIT"):
         return os.environ["PYTOOLS_COMMIT"]
     try:
-        return Path("/etc/pytools-commit").read_text().strip() or "dev"
+        return Path("/etc/catalog-commit").read_text().strip() or "dev"
     except OSError:
         return "dev"
 
@@ -78,7 +80,7 @@ def _app_version() -> str:
     from importlib.metadata import PackageNotFoundError, version
 
     try:
-        return version("pytools")
+        return version("cadquery-catalog")
     except PackageNotFoundError:
         return "0.0.0"
 
