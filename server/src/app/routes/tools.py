@@ -22,6 +22,7 @@ from zipfile import ZipFile
 from pathlib import Path
 from io import BytesIO
 import asyncio
+import hashlib
 import secrets
 import shutil
 import time
@@ -476,7 +477,12 @@ async def model_preview(request: Request, id: int, session: db_tools.SessionDep)
     if tool is None or not tool.preview_svg:
         raise HTTPException(status_code=404, detail="No preview")
     _require_view(request, tool)
-    return Response(content=tool.preview_svg, media_type="image/svg+xml", headers={"Cache-Control": "max-age=3600"})
+    # a re-upload replaces the thumbnail, so browsers revalidate: the ETag is the drawing's hash
+    etag = hashlib.sha256(tool.preview_svg.encode("utf-8")).hexdigest()[:16]
+    if request.headers.get("if-none-match") == f'"{etag}"':
+        return Response(status_code=304, headers={"ETag": f'"{etag}"'})
+    headers = {"Cache-Control": "no-cache", "ETag": f'"{etag}"'}
+    return Response(content=tool.preview_svg, media_type="image/svg+xml", headers=headers)
 
 
 @router.get("/model/{id}/model.{ext}")

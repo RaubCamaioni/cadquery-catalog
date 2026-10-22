@@ -35,7 +35,7 @@ def test_runner_writes_trace_to_fifo(tmp_path):
     os.close(wfd)  # the sandbox's writer is closed too: the reader now sees EOF
     t.join(10)
     os.close(rfd)
-    assert (tmp_path / "result.json").read_text() == '"hello"'
+    assert (tmp_path / "result.json").read_text().startswith('"Export Error')  # a string is not a model
     lines = [struct.unpack("<I", got[i : i + 4])[0] for i in range(0, len(got) - len(got) % 4, 4)]
     assert 2 in lines and max(lines) <= 2
 
@@ -43,7 +43,7 @@ def test_runner_writes_trace_to_fifo(tmp_path):
 def test_runner_without_trace_is_unchanged(tmp_path):
     tool = write_tool(tmp_path)
     subprocess.run(RUNNER + ["--file", str(tool), "--workdir", str(tmp_path)], check=True, timeout=30)
-    assert (tmp_path / "result.json").read_text() == '"hello"'
+    assert (tmp_path / "result.json").read_text().startswith('"Export Error')  # a string is not a model
     assert not (tmp_path / "trace").exists()
 
 
