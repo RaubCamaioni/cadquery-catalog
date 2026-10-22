@@ -73,7 +73,10 @@ def test_upload_validates_and_keeps_the_default_build(monkeypatch, logged_in, tm
     assert (tmp_path / "models" / str(model_id) / "model.stl").read_text() == "<model.stl>"
     assert (tmp_path / "models" / str(model_id) / "model.step").read_text() == "<model.step>"
     # the thumbnail and the default files are served from what the validation run produced
-    assert logged_in.get(f"/model/{model_id}/preview.svg").headers["content-type"].startswith("image/svg+xml")
+    preview = logged_in.get(f"/model/{model_id}/preview.svg")
+    assert preview.headers["content-type"].startswith("image/svg+xml") and preview.headers["cache-control"] == "no-cache"
+    # a browser revalidates with the ETag and gets a 304 while the thumbnail is unchanged
+    assert logged_in.get(f"/model/{model_id}/preview.svg", headers={"If-None-Match": preview.headers["etag"]}).status_code == 304
     r = logged_in.get(f"/model/{model_id}/model.stl")
     assert r.status_code == 200 and r.text == "<model.stl>"
     page = logged_in.get(f"/model/{model_id}").text

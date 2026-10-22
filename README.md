@@ -74,6 +74,7 @@ and the release flow. The differences are the names:
 | Secrets file in the container | `/run/secrets/pywebtools.env` | `/run/secrets/catalog.env` |
 | Extra variable | | `MODELS_DIR`: where default STL/STEP builds are kept (default: beside the database) |
 | Commit file | `/etc/pytools-commit` | `/etc/catalog-commit` |
+| Warm pool | | `SANDBOX_WARM_POOL=1` keeps a sandbox container started ahead of each build with `SANDBOX_PRELOAD=cadquery` already imported (the import costs about six seconds; a container start half a second). One job per container, retired after `SANDBOX_WARM_TTL_SECONDS` (600) if unused. |
 
 ```bash
 cd server && python -m venv .venv && .venv/bin/pip install -e ".[dev]"

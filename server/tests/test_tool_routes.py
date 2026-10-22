@@ -42,6 +42,15 @@ class StubRunner:
     async def stop(self):
         pass
 
+    def new_run_dir(self):
+        import secrets
+
+        root = tools_routes.ENVIRONMENT.sandbox.run_dir
+        root.mkdir(parents=True, exist_ok=True)
+        run_dir = root / secrets.token_urlsafe(12)
+        run_dir.mkdir()
+        return run_dir
+
     async def run(self, tool, run_dir, on_line=None):
         self.calls.append((tool, run_dir))
         self.on_line = on_line
