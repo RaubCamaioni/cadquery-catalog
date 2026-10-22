@@ -347,7 +347,10 @@ HARDWARE_WORDS = ("screw", "screws", "knob", "knobs")
 def get_filter():
     pf = ProfanityFilter()
     for word in HARDWARE_WORDS:
-        pf.remove_word(word)
+        try:
+            pf.remove_word(word)
+        except ValueError:  # not on the stock list in this version of the filter
+            pass
     yield pf
 
 
