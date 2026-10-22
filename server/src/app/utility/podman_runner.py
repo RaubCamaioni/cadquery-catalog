@@ -150,6 +150,7 @@ class PodmanRunner:
         self._unavailable_reason: Optional[str] = STARTING
         self._tasks: list[asyncio.Task] = []
         self._warm: dict[Path, _Warm] = {}  # run directory -> its waiting container
+        self._last_request = float("-inf")  # the pool is only kept while runs are being requested
         self._last_sweep = time.monotonic()  # first sweep after WARM_SWEEP_SECONDS
 
     @property
@@ -438,6 +439,7 @@ class PodmanRunner:
         preloading is handed out too: the sandbox looks for the job only once its imports are done,
         so the job starts the moment they are, always sooner than a cold start would.
         """
+        self._last_request = time.monotonic()
         idle = [w for w in self._warm.values() if not w.taken]
         if idle:
             ready = [w for w in idle if (w.run_dir / READY_FILE).exists()]
@@ -482,7 +484,10 @@ class PodmanRunner:
             await self._sleep(WARM_CHECK_SECONDS)
 
     async def _tend_warm(self):
-        """Retire idle containers past their ttl and keep `warm_pool` of them waiting."""
+        """Retire idle containers past their ttl and, while the site is in use, keep `warm_pool` of them
+        waiting. In use means a run was requested within the ttl: an idle site runs no containers at
+        all, the first request after a quiet spell pays the cold start, the ones after it do not.
+        """
         if not self.available:
             return
         now = time.monotonic()
@@ -490,7 +495,8 @@ class PodmanRunner:
             if not warm.taken and now - warm.created >= self.config.warm_ttl_seconds:
                 await self._recycle(warm)
         idle = sum(1 for w in self._warm.values() if not w.taken)
-        for _ in range(self.config.warm_pool - idle):
+        in_use = now - self._last_request < self.config.warm_ttl_seconds
+        for _ in range(self.config.warm_pool - idle if in_use else 0):
             await self._start_warm()
         if now - self._last_sweep >= WARM_SWEEP_SECONDS:
             self._last_sweep = now
