@@ -1,6 +1,7 @@
 import asyncio
 import dataclasses
 import json
+from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
@@ -11,9 +12,23 @@ from app.routes import tools as tools_routes
 from app.utility.podman_runner import Outcome, RunResult, SandboxBusy, SandboxUnavailable
 
 
+# what the sandbox returns for a model that built: the export dict (see sandbox/export.py)
+BUILD = {
+    "stl": Path("/runs/a/model.stl"),
+    "step": Path("/runs/a/model.step"),
+    "preview": Path("/runs/a/preview.svg"),
+    "meta": {"size_mm": [30, 20, 10], "volume_mm3": 6000.0, "area_mm2": 2200.0, "solids": 1},
+}
+
+
+def built(**meta):
+    return RunResult(Outcome.OK, results={**BUILD, "meta": {**BUILD["meta"], **meta}})
+
+
 class StubRunner:
     def __init__(self, result=None, raise_=None, available=True):
-        self.result, self.raise_, self.available = result, raise_, available
+        self.result = result if result is not None else built()
+        self.raise_, self.available = raise_, available
         self.unavailable_reason = None if available else "self-test failed"
         self.calls = []
         self.on_line = None
@@ -61,42 +76,59 @@ def client(monkeypatch, runner):
 def test_code_view_shows_the_trailing_newline_as_an_empty_last_line(monkeypatch, public_tool):
     code = "# tag\n\n\ndef byte_converter() -> int:\n    return 1\n"
     monkeypatch.setattr(db, "get_tool_by_id", lambda session, id: db.Tool(id=8, name="t", code=code, public=True, tags=[]))
-    page = client(monkeypatch, StubRunner()).get("/tool/8").text
+    page = client(monkeypatch, StubRunner()).get("/model/8").text
     # the view's text ends in two newlines, so Prism numbers an empty line 6; the status bar counts 5 like vim
     assert "    return 1\n\n</code>" in page and ">5L<" in page
 
 
 def test_code_view_without_a_trailing_newline_adds_none(monkeypatch, public_tool):
-    page = client(monkeypatch, StubRunner()).get("/tool/8").text  # the fixture's code has no newline at all
+    page = client(monkeypatch, StubRunner()).get("/model/8").text  # the fixture's code has no newline at all
     assert "return 1</code>" in page and ">1L<" in page
 
 
 def test_run_tool_ok_renders_results(monkeypatch, public_tool):
-    c = client(monkeypatch, StubRunner(RunResult(Outcome.OK, results="0x68 0x69")))
-    r = c.post("/tool/8")
-    assert r.status_code == 200 and json.loads(r.text) == "0x68 0x69"
+    c = client(monkeypatch, StubRunner(built()))
+    r = c.post("/model/8")
+    assert r.status_code == 200
+    body = json.loads(r.text)
+    assert body["stl"] == "/download/runs/a/model.stl" and body["step"] == "/download/runs/a/model.step"
+    assert body["meta"]["size_mm"] == [30, 20, 10]
+    # the page gets the viewer, the measurements and the download links
+    page = c.post("/model/8", headers={"HX-Request": "true"}).text
+    assert '<stl-viewer url="/download/runs/a/model.stl">' in page
+    assert "30 &times; 20 &times; 10 mm" in page and "6.00 cm&sup3;" in page
+    assert 'href="/download/runs/a/model.step" download="byte_converter.step"' in page
+
+
+def test_run_that_returns_no_model_is_a_failure(monkeypatch, public_tool):
+    # the runtime writes its own error text as the result when the entrypoint did not return a model
+    c = client(monkeypatch, StubRunner(RunResult(Outcome.OK, results="Export Error: NotAModel: a model must return ...")))
+    r = c.post("/model/8")
+    assert r.status_code == 422 and r.json()["detail"].startswith("Export Error")
+    page = c.post("/model/8", headers={"HX-Request": "true"}).text
+    assert "Export Error" in page and "<stl-viewer" not in page
 
 
 def test_run_tool_timeout_message_htmx(monkeypatch, public_tool):
     c = client(monkeypatch, StubRunner(RunResult(Outcome.TIMEOUT, message="Tool exceeded the 10 second limit")))
-    r = c.post("/tool/8", headers={"HX-Request": "true"})
+    r = c.post("/model/8", headers={"HX-Request": "true"})
     assert r.status_code == 200 and "Tool exceeded the 10 second limit" in r.text
 
 
 def test_run_tool_malformed_result_renders_failure(monkeypatch, public_tool):
     c = client(monkeypatch, StubRunner(RunResult(Outcome.CRASHED, message="Tool failed to run", stderr_tail="boom")))
-    r = c.post("/tool/8")
-    assert r.status_code == 200 and r.json() == {"detail": "Tool failed to run"}
+    r = c.post("/model/8")
+    assert r.status_code == 422 and r.json() == {"detail": "Tool failed to run\nboom"}
 
 
 def test_run_tool_busy_is_503(monkeypatch, public_tool):
-    r = client(monkeypatch, StubRunner(raise_=SandboxBusy())).post("/tool/8")
+    r = client(monkeypatch, StubRunner(raise_=SandboxBusy())).post("/model/8")
     assert r.status_code == 503 and r.json()["detail"] == "Server busy, try again"
 
 
 def test_run_tool_unavailable_returns_503_without_slot(monkeypatch, public_tool):
     stub = StubRunner(raise_=SandboxUnavailable(), available=False)
-    r = client(monkeypatch, stub).post("/tool/8")
+    r = client(monkeypatch, stub).post("/model/8")
     assert r.status_code == 503 and r.json()["detail"] == "Sandbox unavailable"
     assert stub.calls == []  # route checks runner.available before writing files or running
 
@@ -119,11 +151,11 @@ def test_stylesheet_urls_are_versioned(monkeypatch, public_tool):
     import re
 
     c = client(monkeypatch, StubRunner())
-    for path in ("/", "/tool/8"):
+    for path in ("/", "/model/8"):
         html = c.get(path).text
         # same URL + new content gets served from browser caches; the version query defeats that
         assert re.search(r'/static/output\.css\?v=[0-9a-f]{8,}"', html), path
-    assert re.search(r'/static/prism-vim\.css\?v=[0-9a-f]{8,}"', c.get("/tool/8").text)
+    assert re.search(r'/static/prism-vim\.css\?v=[0-9a-f]{8,}"', c.get("/model/8").text)
 
 
 def test_healthz(monkeypatch):
@@ -134,7 +166,7 @@ def test_healthz(monkeypatch):
 
 def test_run_dir_created_under_configured_root(monkeypatch, public_tool, tmp_path):
     stub = StubRunner(RunResult(Outcome.OK, results=None))
-    client(monkeypatch, stub).post("/tool/8")
+    client(monkeypatch, stub).post("/model/8")
     tool, run_dir = stub.calls[0]
     assert run_dir.parent == tmp_path and tool == run_dir / "byte_converter.py"
 
@@ -150,7 +182,7 @@ def test_tool_page_names_the_author_as_alias_and_id(monkeypatch, tmp_path):
     monkeypatch.setattr(tools_routes.db_tools, "get_user_by_id", lambda session, id: db.User(id=49600918, alias="rob"))
     env = tools_routes.ENVIRONMENT
     monkeypatch.setattr(tools_routes, "ENVIRONMENT", dataclasses.replace(env, sandbox=dataclasses.replace(env.sandbox, run_dir=tmp_path)))
-    page = client(monkeypatch, StubRunner()).get("/tool/8").text
+    page = client(monkeypatch, StubRunner()).get("/model/8").text
     assert "rob#49600918" in page
     assert page.index("t.py</span>") < page.index("rob#49600918") < page.index('id="vim-mode"')  # status bar, after the name
     assert "vim t.py" not in page  # no heading above the code
@@ -167,20 +199,19 @@ def test_anonymous_tool_hides_the_alias_and_the_id(monkeypatch, tmp_path):
     monkeypatch.setattr(tools_routes.db_tools, "get_user_by_id", lambda session, id: db.User(id=49600918, alias="rob"))
     env = tools_routes.ENVIRONMENT
     monkeypatch.setattr(tools_routes, "ENVIRONMENT", dataclasses.replace(env, sandbox=dataclasses.replace(env.sandbox, run_dir=tmp_path)))
-    page = client(monkeypatch, StubRunner()).get("/tool/8").text
+    page = client(monkeypatch, StubRunner()).get("/model/8").text
     assert "anonymous#00000000" in page and "rob#" not in page and "49600918" not in page
 
 
 def test_every_page_carries_the_version_tag(monkeypatch, public_tool):
     from app import TEMPLATES
 
-    monkeypatch.setitem(TEMPLATES.env.globals, "commit_sha", "8cb5eba1234567890")
-    monkeypatch.setitem(TEMPLATES.env.globals, "app_version", "0.2.0")
+    version, sha = TEMPLATES.env.globals["app_version"], TEMPLATES.env.globals["commit_sha"]
     c = client(monkeypatch, StubRunner())
-    for path in ("/", "/tool/8", "/privacy-policy"):
+    for path in ("/", "/model/8", "/privacy-policy"):
         page = c.get(path).text
-        assert 'id="version-tag"' in page and ">v0.2.0+8cb5eba<" in page, path
-        assert "github.com/RaubCamaioni/PyTools/commit/8cb5eba1234567890" in page
+        assert 'id="version-tag"' in page and f">v{version}+{sha[:7]}<" in page, path
+        assert f"github.com/RaubCamaioni/cadquery-catalog/commit/{sha}" in page
 
 
 def download_url(path):
@@ -227,5 +258,5 @@ def test_download_outside_the_run_root_is_forbidden(monkeypatch, public_tool, tm
 
 
 def test_tool_page_downloads_results_in_place(monkeypatch, public_tool):
-    page = client(monkeypatch, StubRunner()).get("/tool/8").text
+    page = client(monkeypatch, StubRunner()).get("/model/8").text
     assert """closest('a[href^="/download/"]')""" in page and "event.preventDefault()" in page

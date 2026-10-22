@@ -90,7 +90,7 @@ def test_callback_logs_in_and_redirects_home(github):
     assert r.status_code in (302, 307) and r.headers["location"] == "/"
     assert github.codes == ["abc"]
     assert "[logout]" in c.get("/login/button").text
-    assert "octocat@pytools" in c.get("/").text  # the prompt shows the alias (defaults to the GitHub login)
+    assert "octocat@catalog" in c.get("/").text  # the prompt shows the alias (defaults to the GitHub login)
 
 
 def test_header_highlights_the_current_page(github):
@@ -109,10 +109,10 @@ def test_header_highlights_the_current_page(github):
 
 def test_header_prompt_shows_user_and_directory(github):
     c = TestClient(app)
-    assert "anonymous@pytools</span>:~<" in c.get("/").text
-    assert "anonymous@pytools</span>:~/tools<" in c.get("/user").text
-    assert "anonymous@pytools</span>:~/privacy<" in c.get("/privacy-policy").text
-    assert "anonymous@pytools</span>:~/terms<" in c.get("/terms-of-service").text
+    assert "anonymous@catalog</span>:~<" in c.get("/").text
+    assert "anonymous@catalog</span>:~/catalog<" in c.get("/user").text
+    assert "anonymous@catalog</span>:~/privacy<" in c.get("/privacy-policy").text
+    assert "anonymous@catalog</span>:~/terms<" in c.get("/terms-of-service").text
 
 
 def test_owner_github_login_maps_to_existing_user_id(github):

@@ -5,7 +5,7 @@ from app.utility.sandbox_config import SandboxConfig
 
 def test_defaults_from_empty_environment():
     cfg = SandboxConfig.from_environment({})
-    assert cfg.image == "docker.io/raubcamaioni/pywebtools-sandbox:latest"
+    assert cfg.image == "docker.io/raubcamaioni/cadquery-catalog-sandbox:latest"
     assert (cfg.max_concurrent, cfg.queue_seconds, cfg.timeout_seconds) == (2, 10.0, 10.0)
     assert (cfg.memory, cfg.cpus, cfg.pids) == ("1g", "0.5", 64)
     assert cfg.run_dir == Path("/tmp/pywebtools-runs")

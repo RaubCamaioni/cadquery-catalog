@@ -22,7 +22,7 @@ class SandboxConfig:
     @classmethod
     def from_environment(cls, env: Mapping[str, str]) -> "SandboxConfig":
         return cls(
-            image=env.get("SANDBOX_IMAGE", "docker.io/raubcamaioni/pywebtools-sandbox:latest"),
+            image=env.get("SANDBOX_IMAGE", "docker.io/raubcamaioni/cadquery-catalog-sandbox:latest"),
             max_concurrent=int(env.get("SANDBOX_MAX_CONCURRENT", "2")),
             queue_seconds=float(env.get("SANDBOX_QUEUE_SECONDS", "10")),
             timeout_seconds=float(env.get("SANDBOX_TIMEOUT_SECONDS", "10")),

@@ -330,6 +330,12 @@ ALLOWED_ATTRIBUTES = {
 }
 
 
+def model_result(root_path: str, name: str, stl_url: str, step_url: str, meta: dict) -> str:
+    """The viewer, measurements and download links for a built model (components/model_result.html)."""
+    template: Template = TEMPLATES.get_template("components/model_result.html")
+    return template.render(root_path=root_path or "", name=name, stl_url=stl_url, step_url=step_url, meta=meta)
+
+
 def render(results: Any, root_path: str = "") -> str:
     """The result panel; `root_path` is the prefix the app is mounted at (for file links)."""
     body = _node(results, root_path or "")

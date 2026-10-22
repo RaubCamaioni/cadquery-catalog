@@ -8,7 +8,7 @@
 <header class="w-full border-b border-line mb-6">
   <div class="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2">
 
-    <span class="whitespace-nowrap"><span class="text-dim">{{ session_alias(request) }}@pytools</span>:{{ cwd | default('~') }}<span class="text-dim"> $</span></span>
+    <span class="whitespace-nowrap"><span class="text-dim">{{ session_alias(request) }}@catalog</span>:{{ cwd | default('~') }}<span class="text-dim"> $</span></span>
 
     <div class="flex-grow"></div>
 
@@ -25,7 +25,7 @@
 </header>
 {# the commit this page was built from, pinned bottom-right; inline styles because output.css is a Tailwind
    build that only includes classes already used elsewhere #}
-<a href="https://github.com/RaubCamaioni/PyTools/commit/{{ commit_sha }}" id="version-tag" class="no-underline text-dim"
+<a href="https://github.com/RaubCamaioni/cadquery-catalog/commit/{{ commit_sha }}" id="version-tag" class="no-underline text-dim"
    style="position: fixed; right: 0; bottom: 0; z-index: 50; padding: 0.15rem 0.5rem; font-size: 0.75rem;
           border-left: 1px solid var(--color-line); border-top: 1px solid var(--color-line); background: var(--color-ink);"
    title="site version: release and git commit">v{{ app_version }}+{{ commit_sha[:7] }}</a>

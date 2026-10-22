@@ -1,4 +1,5 @@
 from sandbox import serializer
+from sandbox.export import export_model
 from sandbox.trace import LineTracer, open_trace
 
 from typing import Any, Callable
@@ -56,6 +57,14 @@ def _run(file: Path) -> None:
         results = f"Runtime Error: {file.stem} {type(e).__name__}\n{trace}"
 
         print(results)
+
+    # a model returns a CadQuery object; the files the site serves are made from it here
+    if not isinstance(results, str):
+        try:
+            results = export_model(results)
+        except Exception as e:
+            results = f"Export Error: {type(e).__name__}: {e}"
+            print(results)
 
     with open("result.json", "w") as f:
         serializer.dump(results, f)

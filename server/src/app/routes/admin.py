@@ -28,7 +28,7 @@ async def admin_page(request: Request, session: db.SessionDep):
         request,
         "pages/admin.html",
         {
-            "header_title": "PyTools",
+            "header_title": "CadQuery Catalog",
             "request": request,
             "root_path": request.scope.get("root_path"),
             "accounts": db.get_users_with_tools(session),

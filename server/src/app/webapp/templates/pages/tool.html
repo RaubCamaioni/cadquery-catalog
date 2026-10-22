@@ -8,28 +8,23 @@
     </head>
     <body class="bg-ink text-paper font-mono">
 
-        {% set cwd = '~/tools' %}
+        {% set cwd = '~/models' %}
         {% include 'components/header.html'%}
 
         <div class="w-11/12 mx-auto flex flex-col">
 
-            <div class="panel tool-layout">
-
-                <div class="code-column">
-                    <div id="code-scroll">
-                        {# a file that ends in a newline shows its empty last line, as editors do;
-                           Prism's line numbers would otherwise hide it (the view's text ends in two newlines) #}
-                        <pre class="line-numbers"><div id="exec-cursor" class="exec-cursor hidden" aria-hidden="true"></div><code class="language-python">{{ code }}{{ "\n" if code.endswith("\n") }}</code></pre>
-                    </div>
-                    {# vim status line, inverse video; the mode shows -- RUNNING -- while a run is in flight #}
-                    <div class="flex items-center gap-4 px-2 bg-paper text-ink whitespace-nowrap overflow-hidden">
-                        <span class="font-bold">{{ tool }}.py</span>
-                        <span title="uploader: alias#account id (an anonymous upload shows a zero id)">{{ author }}</span>
-                        <span id="vim-mode"></span>
-                        <span class="flex-grow"></span>
-                        <span>{{ lines }}L</span>
-                        <span>python</span>
-                        <span>utf-8</span>
+            {# the model: viewer with its measurements and downloads, the parameters beside it #}
+            <div class="panel model-layout">
+                <div class="model-column">
+                    <div id="loading-bar" class="loadbar" aria-hidden="true"></div>
+                    <div id="result">
+                        <div id="return">
+                            {% if default_build %}
+                                {{ default_build | safe }}
+                            {% else %}
+                                <pre class="text-dim p-3">this model has no default build yet: regenerate it</pre>
+                            {% endif %}
+                        </div>
                     </div>
                 </div>
 
@@ -41,20 +36,17 @@
                         hx-target="#return"
                         hx-indicator="#loading-bar"
                         hx-swap="innerHTML">
-                        {# arguments as a tree under the function name #}
+                        {# parameters as a tree under the function name #}
                         <div class="font-bold mb-1">{{ tool }}()</div>
                         {{ form_groups | safe }}
                     </form>
 
-                    {# actions directly under the arguments: run on the left, the run count on the right,
-                       the secondary links on their own line #}
                     <div class="args-actions">
                         <div class="args-actions-row">
-                            <button class="btn" type="submit" form="argument-form">[ run ]</button>
-                            <span class="label">runs: {{ runs }}</span>
+                            <button class="btn" type="submit" form="argument-form">[ regenerate ]</button>
+                            <span class="label">builds: {{ runs }}</span>
                         </div>
                         <div class="args-actions-row text-dim">
-                            <a href="{{ root_path }}/download/tool/{{ tool_id }}" class="no-underline px-1 hover:bg-paper hover:text-ink">[download]</a>
                             <button id="share-link-button" class="cursor-pointer px-1 hover:bg-paper hover:text-ink">[share link]</button>
                         </div>
                         {{ votes | safe }}
@@ -62,12 +54,25 @@
                 </div>
             </div>
 
-            <div id="result_title" class="prompt font-bold mt-6 mb-2">cat results.txt</div>
-            <div id="loading-bar" class="loadbar" aria-hidden="true"></div>
-            <div class="panel p-3 overflow-x-auto" id="result">
-                <div id="return">
-                    {# until a run writes a result, the file does not exist #}
-                    <pre class="text-dim">cat: results.txt: No such file or directory</pre>
+            {# the source, read-only, in the vim-style view #}
+            <div class="prompt font-bold mt-6 mb-2">cat {{ tool }}.py</div>
+            <div class="panel tool-layout">
+                <div class="code-column">
+                    <div id="code-scroll">
+                        {# a file that ends in a newline shows its empty last line, as editors do;
+                           Prism's line numbers would otherwise hide it (the view's text ends in two newlines) #}
+                        <pre class="line-numbers"><div id="exec-cursor" class="exec-cursor hidden" aria-hidden="true"></div><code class="language-python">{{ code }}{{ "\n" if code.endswith("\n") }}</code></pre>
+                    </div>
+                    {# vim status line, inverse video; the mode shows -- RUNNING -- while a build is in flight #}
+                    <div class="flex items-center gap-4 px-2 bg-paper text-ink whitespace-nowrap overflow-hidden">
+                        <span class="font-bold">{{ tool }}.py</span>
+                        <span title="uploader: alias#account id (an anonymous upload shows a zero id)">{{ author }}</span>
+                        <span id="vim-mode"></span>
+                        <span class="flex-grow"></span>
+                        <span>{{ lines }}L</span>
+                        <span>python</span>
+                        <span>utf-8</span>
+                    </div>
                 </div>
             </div>
 

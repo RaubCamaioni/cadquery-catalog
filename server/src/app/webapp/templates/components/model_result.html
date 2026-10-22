@@ -1,0 +1,18 @@
+{# the generated model: viewer, downloads and measurements. Rendered for the model page with the
+   default build and again by every [regenerate] (swapped into #return) #}
+<div class="model-result">
+    <stl-viewer url="{{ stl_url }}"></stl-viewer>
+    <div class="model-meta">
+        <span class="text-dim">size</span>
+        <span>{{ meta.size_mm[0] }} &times; {{ meta.size_mm[1] }} &times; {{ meta.size_mm[2] }} mm</span>
+        <span class="text-dim">volume</span>
+        <span>{{ "%.2f" | format(meta.volume_mm3 / 1000) }} cm&sup3;</span>
+        <span class="text-dim">solids</span>
+        <span>{{ meta.solids }}</span>
+        <span class="text-dim">download</span>
+        <span>
+            <a href="{{ stl_url }}" download="{{ name }}.stl" class="no-underline px-1 hover:bg-paper hover:text-ink">[stl]</a>
+            <a href="{{ step_url }}" download="{{ name }}.step" class="no-underline px-1 hover:bg-paper hover:text-ink">[step]</a>
+        </span>
+    </div>
+</div>

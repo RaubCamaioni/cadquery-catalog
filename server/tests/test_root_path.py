@@ -13,7 +13,7 @@ from app.utility.podman_runner import Outcome, RunResult
 from tests.test_auth_routes import FakeGitHub, github  # noqa: F401  (fixture)
 from tests.test_tool_routes import StubRunner, public_tool  # noqa: F401  (fixture)
 
-PREFIX = "/tools"
+PREFIX = "/models"
 
 
 def prefixed_client(monkeypatch, runner=None):
@@ -31,19 +31,19 @@ def test_home_page_assets_and_links_carry_the_prefix(monkeypatch, public_tool):
     page = prefixed_client(monkeypatch).get(PREFIX + "/").text
     assert unprefixed_urls(page) == []
     assert f'href="{PREFIX}/static/output.css' in page and f'src="{PREFIX}/scripts/htmx.min.js"' in page
-    assert f'hx-post="{PREFIX}/tools' in page  # the listing loader
-    # the home link is marked active even though the request path is /tools/
-    assert re.search(r'href="/tools/" class="[^"]*bg-paper', page)
+    assert f'hx-post="{PREFIX}/models' in page  # the listing loader
+    # the home link is marked active even though the request path is /models/
+    assert re.search(r'href="/models/" class="[^"]*bg-paper', page)
 
 
 def test_tool_page_and_result_links_carry_the_prefix(monkeypatch, public_tool):
-    c = prefixed_client(monkeypatch, StubRunner(RunResult(Outcome.OK, results={"file": Path("/runs/a/out.png")})))
-    page = c.get(PREFIX + "/tool/8").text
+    c = prefixed_client(monkeypatch, StubRunner())
+    page = c.get(PREFIX + "/model/8").text
     assert unprefixed_urls(page) == []
     assert f'new EventSource("{PREFIX}/trace/"' in page and f"""a[href^="{PREFIX}/download/"]""" in page
-    result = c.post(PREFIX + "/tool/8", headers={"HX-Request": "true"}).text
-    assert f'href="{PREFIX}/download/runs/a/out.png"' in result
-    assert f'src="{PREFIX}/download/runs/a/out.png?preview=1"' in result
+    result = c.post(PREFIX + "/model/8", headers={"HX-Request": "true"}).text
+    assert f'<stl-viewer url="{PREFIX}/download/runs/a/model.stl">' in result
+    assert f'href="{PREFIX}/download/runs/a/model.step"' in result
 
 
 def test_login_round_trip_stays_under_the_prefix(monkeypatch, github, public_tool):  # noqa: F811
@@ -62,11 +62,11 @@ def test_login_round_trip_stays_under_the_prefix(monkeypatch, github, public_too
 def test_listing_pages_and_their_loader_carry_the_prefix(monkeypatch, public_tool):
     # the second page is requested by a loader rendered inside the first page's response
     monkeypatch.setattr(tools_routes.db_tools, "get_tools_by_index", lambda *a, **k: [(n, f"t{n}") for n in range(50)])
-    page = prefixed_client(monkeypatch).post(PREFIX + "/tools?start=0&end=50").text
-    assert unprefixed_urls(page) == [] and f'hx-post="{PREFIX}/tools?start=50&end=100"' in page
+    page = prefixed_client(monkeypatch).post(PREFIX + "/models?start=0&end=50").text
+    assert unprefixed_urls(page) == [] and f'hx-post="{PREFIX}/models?start=50&end=100"' in page
 
 
 def test_without_a_prefix_nothing_changes(monkeypatch, public_tool):
     monkeypatch.setattr(tools_routes, "runner", StubRunner())
     page = TestClient(app).get("/").text
-    assert 'href="/static/output.css' in page and 'hx-post="/tools' in page
+    assert 'href="/static/output.css' in page and 'hx-post="/models' in page

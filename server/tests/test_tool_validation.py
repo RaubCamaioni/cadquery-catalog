@@ -53,9 +53,17 @@ def test_windows_line_endings_are_normalised():
     assert "\r" not in tool.code and tool.tags == ["tag", "demo"]
 
 
-@pytest.mark.parametrize("name", ["byte_converter", "sha256"])
-def test_shipped_tools_pass(name):
+@pytest.mark.parametrize("name", ["storage_box", "spacer"])
+def test_shipped_models_pass(name):
     from pathlib import Path
 
-    code = (Path(__file__).resolve().parents[2] / "tools" / f"{name}.py").read_text(encoding="utf-8")
-    assert db.create_tool(1, name, code).name == name
+    code = (Path(__file__).resolve().parents[2] / "models" / f"{name}.py").read_text(encoding="utf-8")
+    tool = db.create_tool(1, name, code)
+    assert tool.name == name and all(t in ("int", "float", "str") or t.startswith("Literal") for t, _ in tool.arguments.values())
+
+
+def test_path_parameters_are_rejected():
+    code = "# tag\n\nfrom pathlib import Path\n\n\ndef demo(value: int = 1, shape: Path = None) -> int:\n    return value\n"
+    with pytest.raises(HTTPException) as info:
+        db.create_tool(1, "demo", code)
+    assert info.value.status_code == 400 and "'shape' is a Path" in info.value.detail

@@ -40,7 +40,7 @@ def test_tools_route_searches_with_the_typed_words(monkeypatch):
         return [(i, f"pdf_tool{i}") for i in range(50)]  # a full page: the loader for the next one follows
 
     monkeypatch.setattr(db, "get_tools_by_tags", fake)
-    r = client(monkeypatch, StubRunner()).post("/tools?start=0&end=50", data={"search": "merge pdf"})
+    r = client(monkeypatch, StubRunner()).post("/models?start=0&end=50", data={"search": "merge pdf"})
     assert r.status_code == 200 and calls == [["merge", "pdf"]]
     assert "merge pdf" in html.unescape(r.text)  # the infinite-scroll loader carries the words forward
     assert "tag-filters" not in r.text

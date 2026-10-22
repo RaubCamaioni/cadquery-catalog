@@ -1,4 +1,5 @@
 from fastapi.responses import (
+    Response,
     HTMLResponse,
     JSONResponse,
     StreamingResponse,
@@ -78,7 +79,7 @@ def _require_view(request: Request, tool) -> None:
         return
     user = session_user(request)
     if user is None or (tool.user_id != user.id and not user.admin):
-        raise HTTPException(status_code=404, detail="Tool Not Found")
+        raise HTTPException(status_code=404, detail="Model Not Found")
 
 
 def secret_dir_name(length=32):
@@ -158,14 +159,14 @@ async def read_root(request: Request, session: db_tools.SessionDep):
         request,
         "pages/index.html",
         {
-            "header_title": "PyTools",
+            "header_title": "CadQuery Catalog",
             "request": request,
             "root_path": request.scope.get("root_path"),
         },
     )
 
 
-@router.post("/tools", response_class=JSONResponse)
+@router.post("/models", response_class=JSONResponse)
 async def get_tools(
     request: Request,
     session: db_tools.SessionDep,
@@ -193,7 +194,7 @@ async def get_tools(
     return HTMLResponse(content=content)
 
 
-@router.post("/user/tools", response_class=JSONResponse)
+@router.post("/user/models", response_class=JSONResponse)
 async def get_user_tools(request: Request, session: db_tools.SessionDep):
     if "user" not in request.session:
         return HTMLResponse(content="")
@@ -204,20 +205,20 @@ async def get_user_tools(request: Request, session: db_tools.SessionDep):
 
 
 # currently unused
-@router.get("/tool/{id}/link", response_class=HTMLResponse)
+@router.get("/model/{id}/link", response_class=HTMLResponse)
 async def tool_link(request: Request, id: int, session: db_tools.SessionDep):
     tool = db_tools.get_tool_by_id(session, id)
 
     if tool is None:
-        raise HTTPException(status_code=404, detail="Tool Not Found")
+        raise HTTPException(status_code=404, detail="Model Not Found")
 
     if not tool.public:
         if "user" not in request.session:
-            raise HTTPException(status_code=404, detail="Tool Not Found")
+            raise HTTPException(status_code=404, detail="Model Not Found")
         user: User = User.model_validate_json(request.session["user"])
 
         if tool.user_id != user.id:
-            raise HTTPException(status_code=404, detail="Tool Not Found")
+            raise HTTPException(status_code=404, detail="Model Not Found")
 
     form_data = {}
     if len(tool.arguments):
@@ -228,7 +229,7 @@ async def tool_link(request: Request, id: int, session: db_tools.SessionDep):
 
     url = urljoin(
         f"{parsed_url.scheme}://{parsed_url.netloc}",
-        f"{root_path}/tool/{id}",
+        f"{root_path}/model/{id}",
     )
 
     query_string = urlencode(form_data)
@@ -237,15 +238,16 @@ async def tool_link(request: Request, id: int, session: db_tools.SessionDep):
     return HTMLResponse(content=content)
 
 
-@router.get("/tool/{id}", response_class=HTMLResponse)
+@router.get("/model/{id}", response_class=HTMLResponse)
 async def entrypoint_page(request: Request, id: int, session: db_tools.SessionDep):
     tool = db_tools.get_tool_by_id(session, id)
 
     if tool is None:
-        raise HTTPException(status_code=404, detail="Tool Not Found")
+        raise HTTPException(status_code=404, detail="Model Not Found")
 
     _require_view(request, tool)
 
+    root_path = request.scope.get("root_path") or ""
     query = dict(request.query_params)
     arguments = tool.arguments
 
@@ -259,19 +261,31 @@ async def entrypoint_page(request: Request, id: int, session: db_tools.SessionDe
         request,
         "pages/tool.html",
         {
-            "header_title": "PyTools",
+            "header_title": "CadQuery Catalog",
             "tool": tool.name,
             "tool_id": tool.id,
             "runs": render.format_runs(tool.usage),
             "request": request,
             "root_path": request.scope.get("root_path"),
-            "endpoint": f"{request.scope.get('root_path') or ''}/tool/{tool.id}",
+            "endpoint": f"{request.scope.get('root_path') or ''}/model/{tool.id}",
             "code": tool.code,
             "lines": len(tool.code.splitlines()),  # vim's count: a final newline ends a line, it does not start one
             "form_groups": render.args_to_form(tool.arguments),
             "time": time.time(),
             "votes": _votes_block(request, session, tool.id),
             "author": _author_label(session, tool),
+            "meta": tool.meta or {},
+            "default_build": (
+                render.model_result(
+                    root_path,
+                    tool.name,
+                    f"{root_path}/model/{tool.id}/model.stl",
+                    f"{root_path}/model/{tool.id}/model.step",
+                    tool.meta,
+                )
+                if tool.meta
+                else ""
+            ),
         },
     )
 
@@ -296,13 +310,13 @@ def _votes_block(request: Request, session, tool_id: int, login_needed: Optional
     return render.tool_votes(request.scope.get("root_path"), tool_id, up, down, my_vote, reported, login_needed)
 
 
-@router.post("/tool/{id}/vote", response_class=HTMLResponse)
+@router.post("/model/{id}/vote", response_class=HTMLResponse)
 async def vote_tool(request: Request, id: int, direction: str, session: db_tools.SessionDep):
     if direction not in ("up", "down"):
         raise HTTPException(status_code=400, detail="direction must be up or down")
     tool = db_tools.get_tool_by_id(session, id)
     if tool is None:
-        raise HTTPException(status_code=404, detail="Tool Not Found")
+        raise HTTPException(status_code=404, detail="Model Not Found")
     _require_view(request, tool)
     user = session_user(request)
     if user is None:
@@ -311,11 +325,11 @@ async def vote_tool(request: Request, id: int, direction: str, session: db_tools
     return HTMLResponse(_votes_block(request, session, id))
 
 
-@router.post("/tool/{id}/report", response_class=HTMLResponse)
+@router.post("/model/{id}/report", response_class=HTMLResponse)
 async def report_tool(request: Request, id: int, session: db_tools.SessionDep):
     tool = db_tools.get_tool_by_id(session, id)
     if tool is None:
-        raise HTTPException(status_code=404, detail="Tool Not Found")
+        raise HTTPException(status_code=404, detail="Model Not Found")
     _require_view(request, tool)
     user = session_user(request)
     if user is None:
@@ -328,31 +342,7 @@ async def report_tool(request: Request, id: int, session: db_tools.SessionDep):
     return HTMLResponse(_votes_block(request, session, id))
 
 
-@router.get("/download/tool/{id}", response_class=HTMLResponse)
-async def download_tool(request: Request, id: int, session: db_tools.SessionDep):
-    tool = db_tools.get_tool_by_id(session, id)
-
-    if tool is None:
-        raise HTTPException(status_code=404, detail="Tool Not Found")
-
-    _require_view(request, tool)
-
-    zip_buffer = BytesIO()
-    with ZipFile(zip_buffer, "w") as zip_file:
-        zip_file.writestr(f"{tool.name}.py", tool.code)
-        zip_file.write("/files/runner.py", "runner.py")
-        zip_file.write("/files/requirements.txt", "requirements.txt")
-
-    zip_buffer.seek(0)
-
-    return StreamingResponse(
-        zip_buffer,
-        media_type="application/zip",
-        headers={"Content-Disposition": f"attachment; filename={tool.name}.zip"},
-    )
-
-
-@router.get("/public/tool/{id}", response_class=HTMLResponse)
+@router.get("/public/model/{id}", response_class=HTMLResponse)
 async def public_tool(
     request: Request,
     id: int,
@@ -369,7 +359,7 @@ async def public_tool(
         raise HTTPException(status_code=403, detail="Forbidden")
 
     if tool is None:
-        raise HTTPException(status_code=404, detail="Tool Not Found")
+        raise HTTPException(status_code=404, detail="Model Not Found")
 
     tool.public = public
     session.commit()
@@ -377,57 +367,78 @@ async def public_tool(
     return HTMLResponse(status_code=200)
 
 
-async def _run_tool(request: Request, id: int, temp_dir: Path, session, channel):
-    if not runner.available:
-        raise HTTPException(status_code=503, detail="Sandbox unavailable")
-
-    tool = db_tools.get_tool_by_id(session, id)
-
-    if tool is None:
-        raise HTTPException(status_code=404, detail="Tool Not Found")
-
-    _require_view(request, tool)
-
-    form_data = {}
-    if len(tool.arguments):
-        form = await request.form()
-        form_data = {k: v for k, v in form.items() if k in tool.arguments}  # stray fields are ignored
-
+def _coerce(tool, values: dict) -> dict:
+    """Typed keyword arguments for the entrypoint: submitted values, the declared default otherwise."""
     kwargs = {}
-    temp_tool = (temp_dir / tool.name).with_suffix(".py")
-    with open(temp_tool, "w") as f:
-        f.write(tool.code)
-
-    for key, value in form_data.items():
-        # TODO: saftey check: tool arguments have been parsed at this point (maybe pre cast them?)
-        python_type = eval(tool.arguments[key][0])
-
-        if isinstance(value, StarUploadFile):
-            upload_path = temp_dir / value.filename
-            with open(upload_path, "wb+") as f:
-                f.write(value.file.read())
-            kwargs[key] = upload_path
-        elif get_origin(python_type) is Literal:
+    for key, (type_name, default) in tool.arguments.items():
+        value = values.get(key, default)
+        python_type = eval(type_name)  # the annotation was validated at upload (int, float, str, Literal)
+        if get_origin(python_type) is Literal or python_type is str:
             kwargs[key] = str(value)
         else:
-            kwargs[key] = python_type(value)
+            try:
+                kwargs[key] = python_type(value)
+            except (TypeError, ValueError):
+                raise HTTPException(status_code=400, detail=f"Argument Error: {key} must be {type_name}")
+    return kwargs
 
+
+async def build_model(tool, kwargs: dict, temp_dir: Path, on_line=None):
+    """Run a model's code in the sandbox with the given arguments; the result is the export dict or an error."""
+    if not runner.available:
+        raise HTTPException(status_code=503, detail="Sandbox unavailable")
+    temp_tool = (temp_dir / tool.name).with_suffix(".py")
+    temp_tool.write_text(tool.code, encoding="utf-8")
     with open(temp_dir / "args.json", "w") as f:
         serializer.dump(kwargs, f)
-
-    tool.usage = tool.usage + 1
-    session.commit()
-
     # !DANGER! user submitted code
     try:
-        return await runner.run(temp_tool, temp_dir, on_line=channel.put if channel is not None else None)
+        return await runner.run(temp_tool, temp_dir, on_line=on_line)
     except SandboxBusy:
         raise HTTPException(status_code=503, detail="Server busy, try again")
     except SandboxUnavailable:
         raise HTTPException(status_code=503, detail="Sandbox unavailable")
 
 
-@router.post("/tool/{id}", response_class=HTMLResponse)
+def build_failure(result) -> Optional[str]:
+    """Why a build did not produce a model, or None when it did."""
+    if result.outcome is not Outcome.OK:
+        return result.message + (f"\n{result.stderr_tail}" if result.stderr_tail else "")
+    if not isinstance(result.results, dict) or "stl" not in result.results:
+        return str(result.results)  # the runtime's own error text (Runtime Error ..., Export Error ...)
+    return None
+
+
+def model_file_urls(root_path: str, result_files: dict) -> tuple[str, str]:
+    """Download URLs (under /download/) for the stl and step of a run."""
+
+    def url(path: Path) -> str:
+        return (root_path or "") + (Path("/download") / path.relative_to(path.anchor)).as_posix()
+
+    return url(result_files["stl"]), url(result_files["step"])
+
+
+async def _run_tool(request: Request, id: int, temp_dir: Path, session, channel):
+    tool = db_tools.get_tool_by_id(session, id)
+
+    if tool is None:
+        raise HTTPException(status_code=404, detail="Model Not Found")
+
+    _require_view(request, tool)
+
+    values = {}
+    if len(tool.arguments):
+        form = await request.form()
+        values = {k: v for k, v in form.items() if k in tool.arguments and not isinstance(v, StarUploadFile)}
+    kwargs = _coerce(tool, values)
+
+    tool.usage = tool.usage + 1
+    session.commit()
+
+    return await build_model(tool, kwargs, temp_dir, on_line=channel.put if channel is not None else None)
+
+
+@router.post("/model/{id}", response_class=HTMLResponse)
 async def run_isolated(
     request: Request,
     id: int,
@@ -447,18 +458,44 @@ async def run_isolated(
             channel.close()  # every exit, including 404/503, ends the page's trace stream
 
     htmx = request.headers.get("HX-Request") == "true"
+    root_path = request.scope.get("root_path") or ""
+    failure = build_failure(result)
 
-    if result.outcome is not Outcome.OK:
-        logger.warning(f"tool {id} {result.outcome.name}: {result.stderr_tail}")
+    if failure is not None:
+        logger.warning(f"model {id} {result.outcome.name}: {failure[:200]}")
         if htmx:
-            text = result.message + (f"\n{result.stderr_tail}" if result.stderr_tail else "")
-            return HTMLResponse(content=render.render(text))
-        return JSONResponse({"detail": result.message})
+            return HTMLResponse(content=render.render(failure))
+        return JSONResponse({"detail": failure}, status_code=422)
 
+    stl_url, step_url = model_file_urls(root_path, result.results)
     if htmx:
-        return HTMLResponse(content=render.render(result.results, request.scope.get("root_path") or ""))
-    else:
-        return json.dumps(result.results, cls=PathEncoder)
+        tool = db_tools.get_tool_by_id(session, id)
+        return HTMLResponse(content=render.model_result(root_path, tool.name, stl_url, step_url, result.results["meta"]))
+    return json.dumps({"stl": stl_url, "step": step_url, "meta": result.results["meta"]})
+
+
+@router.get("/model/{id}/preview.svg")
+async def model_preview(request: Request, id: int, session: db_tools.SessionDep):
+    """The thumbnail drawn at upload (white lines, transparent background)."""
+    tool = db_tools.get_tool_by_id(session, id)
+    if tool is None or not tool.preview_svg:
+        raise HTTPException(status_code=404, detail="No preview")
+    _require_view(request, tool)
+    return Response(content=tool.preview_svg, media_type="image/svg+xml", headers={"Cache-Control": "max-age=3600"})
+
+
+@router.get("/model/{id}/model.{ext}")
+async def model_default_file(request: Request, id: int, ext: Literal["stl", "step"], session: db_tools.SessionDep):
+    """The model built with its default parameters, kept from the validation run at upload."""
+    tool = db_tools.get_tool_by_id(session, id)
+    if tool is None:
+        raise HTTPException(status_code=404, detail="Model Not Found")
+    _require_view(request, tool)
+    path = ENVIRONMENT.MODELS_DIR / str(tool.id) / f"model.{ext}"
+    if not path.is_file():
+        raise HTTPException(status_code=404, detail="No default build for this model")
+    media = "model/stl" if ext == "stl" else "application/step"
+    return FileResponse(path, media_type=media, filename=f"{tool.name}.{ext}")
 
 
 @security.constant_time_with_random_delay(0.2, 1)
@@ -493,11 +530,11 @@ async def download_file(file_str: str, preview: bool = False):
 
 @router.get("/terms-of-service", response_class=FileResponse)
 async def terms_of_service(request: Request):
-    kwargs = {"request": request, "header_title": "PyTools"}
+    kwargs = {"request": request, "header_title": "CadQuery Catalog"}
     return TEMPLATES.TemplateResponse(request, "pages/terms_of_service.html", kwargs)
 
 
 @router.get("/privacy-policy", response_class=FileResponse)
 async def privacy_policy(request: Request):
-    kwargs = {"request": request, "header_title": "PyTools"}
+    kwargs = {"request": request, "header_title": "CadQuery Catalog"}
     return TEMPLATES.TemplateResponse(request, "pages/privacy_policy.html", kwargs)

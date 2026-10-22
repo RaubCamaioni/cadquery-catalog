@@ -2,7 +2,7 @@
 <li class="contents">
 
     {# name #}
-    <span class="px-1 py-0.5 min-w-0"><a href="{{ root_path }}/tool/{{ id }}" class="no-underline hover:bg-paper hover:text-ink">{{ name }}.py</a></span>
+    <span class="px-1 py-0.5 min-w-0"><a href="{{ root_path }}/model/{{ id }}" class="no-underline hover:bg-paper hover:text-ink">{{ name }}.py</a></span>
 
     {# mode column: the two switches #}
     <span class="flex items-center gap-1 px-1 py-0.5">
@@ -12,7 +12,7 @@
                 {{ public }}
                 _="
                 on change
-                    fetch `{{ root_path }}/manage/tool/settings/{{ id }}?public=${my.checked}` with method:'POST'
+                    fetch `{{ root_path }}/manage/model/settings/{{ id }}?public=${my.checked}` with method:'POST'
                 end"/>
             <span class="label-text">[public]</span>
         </label>
@@ -22,7 +22,7 @@
                 {{ anonymous }}
                 _="
                 on change
-                    fetch `{{ root_path }}/manage/tool/settings/{{ id }}?anonymous=${my.checked}` with method:'POST'
+                    fetch `{{ root_path }}/manage/model/settings/{{ id }}?anonymous=${my.checked}` with method:'POST'
                 end"/>
             <span class="label-text">[anonymous]</span>
         </label>
@@ -37,14 +37,14 @@
             id="tool-update-{{ id }}"
             type="file"
             name="file"
-            hx-post="{{ root_path }}/manage/tool/update/{{ id }}"
+            hx-post="{{ root_path }}/manage/model/update/{{ id }}"
             hx-encoding="multipart/form-data"
             hx-trigger="change"
             hx-swap="none"
             style="display: none;" />
         <label for="tool-update-{{ id }}" class="cursor-pointer px-1 hover:bg-paper hover:text-ink">[update]</label>
         <a
-            hx-delete="{{ root_path }}/manage/tool/delete/{{ id }}"
+            hx-delete="{{ root_path }}/manage/model/delete/{{ id }}"
             hx-trigger="click"
             hx-confirm="Delete {{ name }}.py?"
             hx-target="closest li"
