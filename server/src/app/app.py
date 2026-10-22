@@ -26,7 +26,14 @@ app.include_router(auth.router)
 app.include_router(tools.router)
 app.include_router(user.router)
 app.include_router(admin.router)
-app.add_middleware(SessionMiddleware, secret_key=ENVIRONMENT.SESSION_KEY)
+# a cookie name and path of its own: PyTools lives on the same host under another prefix, and two
+# apps sharing the default "session" cookie at path "/" would log each other out
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=ENVIRONMENT.SESSION_KEY,
+    session_cookie="catalog_session",
+    path=ENVIRONMENT.ROOT_PATH or "/",
+)
 
 
 for route in app.routes:
