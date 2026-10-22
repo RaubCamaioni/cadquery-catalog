@@ -106,7 +106,10 @@
                     const top = parseFloat(getComputedStyle(pre).paddingTop) + (n - 1) * lineHeight;
                     cursor.style.top = top + "px";
                     cursor.style.height = lineHeight + "px";
+                    // keep the cursor visible inside the code pane without scrolling the page away from the viewer
+                    const pageY = window.scrollY;
                     cursor.scrollIntoView({ block: "nearest" });
+                    window.scrollTo(window.scrollX, pageY);
                 }
                 function progress(percent) {
                     bar.classList.add("determinate");
