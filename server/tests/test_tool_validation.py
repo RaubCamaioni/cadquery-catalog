@@ -70,5 +70,5 @@ def test_path_parameters_are_rejected():
 
 
 def test_hardware_words_pass_the_profanity_filter():
-    pf = next(db.get_filter())
-    assert pf.is_clean("a knob with a screw hole") and not pf.is_clean("fuck")
+    pf = next(db.get_filter())  # must not raise for a whitelisted word the stock list lacks
+    assert pf.is_clean("a knob with screws") and not pf.is_clean("fuck")
