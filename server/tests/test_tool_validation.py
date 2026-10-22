@@ -67,3 +67,8 @@ def test_path_parameters_are_rejected():
     with pytest.raises(HTTPException) as info:
         db.create_tool(1, "demo", code)
     assert info.value.status_code == 400 and "'shape' is a Path" in info.value.detail
+
+
+def test_hardware_words_pass_the_profanity_filter():
+    pf = next(db.get_filter())
+    assert pf.is_clean("a knob with a screw hole") and not pf.is_clean("fuck")

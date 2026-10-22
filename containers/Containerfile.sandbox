@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 # Sandbox runtime image: executes one uploaded Python tool per container.
 # Launched by the app's PodmanRunner with the limits in docs/superpowers/specs/2026-10-19-podman-sandbox-runner-design.md.
 
@@ -16,7 +17,23 @@ USER app
 COPY --chown=app:app sandbox /tmp/sandbox
 RUN python3 -m venv /venvs/sandbox && \
   /venvs/sandbox/bin/pip install --no-cache-dir /tmp/sandbox && \
+  cp -r /tmp/sandbox/stubs /venvs/stubs && \
   rm -rf /tmp/sandbox
+
+# Build-time import trim (see sandbox/stubs): CadQuery imports VTK and ezdxf only for Jupyter display
+# and DXF, neither of which a build uses; together with the package-metadata version lookup they cost
+# about 1.5 s of every cold start. The version is pinned to a literal at build time.
+ENV PYTHONPATH=/venvs/stubs
+RUN v=$(/venvs/sandbox/bin/pip show cadquery | sed -n 's/^Version: //p') && \
+  f=$(/venvs/sandbox/bin/python -c 'import cadquery, os; print(os.path.join(os.path.dirname(cadquery.__file__), "__init__.py"))') && \
+  /venvs/sandbox/bin/python - "$f" "$v" <<'EOF'
+import re, sys
+path, version = sys.argv[1], sys.argv[2]
+src = open(path).read()
+new, n = re.subn(r'try:\n    __version__ = version\("cadquery"\)\nexcept PackageNotFoundError:\n', f'if True:\n    __version__ = "{version}"\nif False:\n', src)
+assert n == 1, 'cadquery/__init__.py version lookup not found'
+open(path, 'w').write(new)
+EOF
 
 WORKDIR /box
 ENTRYPOINT ["/venvs/sandbox/bin/sandbox"]

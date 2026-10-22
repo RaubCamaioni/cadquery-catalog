@@ -340,8 +340,14 @@ def get_session():
         yield session
 
 
+# words the stock profanity list flags that a CAD site cannot do without
+HARDWARE_WORDS = ("screw", "screws", "knob", "knobs")
+
+
 def get_filter():
     pf = ProfanityFilter()
+    for word in HARDWARE_WORDS:
+        pf.remove_word(word)
     yield pf
 
 
