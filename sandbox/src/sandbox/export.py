@@ -14,20 +14,24 @@ and returns a dict of those paths plus the metadata, which becomes the run's res
 from pathlib import Path
 from typing import Any
 import json
+import re
 
-# white strokes: the site draws thumbnails on a black background
+# white strokes: the site draws thumbnails on a black background. The projection direction is
+# CadQuery's default, which looks down onto the part from above-front with Z up; other
+# directions came out mirrored or upside down.
 SVG_OPTIONS = {
     "width": 480,
     "height": 360,
     "marginLeft": 24,
     "marginTop": 24,
     "showAxes": False,
-    "projectionDir": (1.0, -1.0, 0.8),
+    "projectionDir": (-1.75, 1.1, 5.0),
     "strokeWidth": 0.6,
     "strokeColor": (255, 255, 255),
     "hiddenColor": (90, 90, 90),
     "showHidden": False,
 }
+PREVIEW_MARGIN = 0.06  # of the drawing's size, on every side
 
 
 class NotAModel(TypeError):
@@ -62,6 +66,36 @@ def measure(shape) -> dict:
     }
 
 
+_TRANSFORM = re.compile(r'transform="scale\(([-\d.e]+),\s*([-\d.e]+)\)\s*translate\(([-\d.e]+),\s*([-\d.e]+)\)"')
+_NUMBER = re.compile(r"[-+]?(?:\d+\.\d*|\.\d+|\d+)(?:[eE][-+]?\d+)?")
+
+
+def fit_svg(svg: str) -> str:
+    """Centre the drawing: CadQuery's exporter fits the part's 3D box, not the lines it drew,
+    so the picture sits off-centre. Compute the extent of the drawn lines in page units and
+    set a viewBox around them; the fixed width/height go, so the image scales to its box.
+    """
+    transform = _TRANSFORM.search(svg)
+    paths = re.findall(r'd="([^"]+)"', svg)
+    if transform is None or not paths:
+        return svg
+    sx, sy, tx, ty = (float(v) for v in transform.groups())
+    xs, ys = [], []
+    for d in paths:
+        numbers = [float(n) for n in _NUMBER.findall(d)]
+        xs.extend(sx * (x + tx) for x in numbers[0::2])
+        ys.extend(sy * (y + ty) for y in numbers[1::2])
+    if not xs or not ys:
+        return svg
+    x0, x1, y0, y1 = min(xs), max(xs), min(ys), max(ys)
+    w, h = max(x1 - x0, 1e-6), max(y1 - y0, 1e-6)
+    m = PREVIEW_MARGIN * max(w, h)
+    view_box = f'viewBox="{x0 - m:.3f} {y0 - m:.3f} {w + 2 * m:.3f} {h + 2 * m:.3f}"'
+    svg = re.sub(r'\s+width="[^"]*"', "", svg, count=1)
+    svg = re.sub(r'\s+height="[^"]*"', "", svg, count=1)
+    return svg.replace("<svg\n", f"<svg\n   {view_box}\n", 1) if "<svg\n" in svg else svg.replace("<svg", f"<svg {view_box}", 1)
+
+
 def export_model(result: Any, workdir: Path | None = None) -> dict:
     from cadquery import exporters
 
@@ -71,6 +105,7 @@ def export_model(result: Any, workdir: Path | None = None) -> dict:
     exporters.export(shape, str(files["model.stl"]))
     exporters.export(shape, str(files["model.step"]))
     exporters.export(shape, str(files["preview.svg"]), opt=SVG_OPTIONS)
+    files["preview.svg"].write_text(fit_svg(files["preview.svg"].read_text(encoding="utf-8")), encoding="utf-8")
     meta = measure(shape)
     (workdir / "meta.json").write_text(json.dumps(meta), encoding="utf-8")
     return {
