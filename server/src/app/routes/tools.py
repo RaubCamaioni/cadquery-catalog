@@ -361,13 +361,25 @@ async def public_tool(
     return HTMLResponse(status_code=200)
 
 
-def _coerce(tool, values: dict) -> dict:
-    """Typed keyword arguments for the entrypoint: submitted values, the declared default otherwise."""
+def _coerce(tool, values: dict, run_dir: Optional[Path] = None) -> dict:
+    """Typed keyword arguments for the entrypoint: submitted values, the declared default otherwise.
+    A file parameter (Path) becomes the uploaded file saved into the run directory, or None when
+    nothing was uploaded: models build a demo in that case, which is also how validation runs.
+    """
     kwargs = {}
     for key, (type_name, default) in tool.arguments.items():
         value = values.get(key, default)
-        python_type = eval(type_name)  # the annotation was validated at upload (int, float, str, Literal)
-        if get_origin(python_type) is Literal or python_type is str:
+        python_type = eval(type_name)  # the annotation was validated at upload (int, float, str, Literal, Path)
+        if python_type is Path:
+            upload = value if isinstance(value, StarUploadFile) and value.filename else None
+            if upload is None or run_dir is None:
+                kwargs[key] = None
+            else:
+                target = run_dir / Path(upload.filename).name  # the bare name: no directories from the client
+                with open(target, "wb") as f:
+                    f.write(upload.file.read())
+                kwargs[key] = target
+        elif get_origin(python_type) is Literal or python_type is str:
             kwargs[key] = str(value)
         else:
             try:
@@ -423,8 +435,8 @@ async def _run_tool(request: Request, id: int, temp_dir: Path, session, channel)
     values = {}
     if len(tool.arguments):
         form = await request.form()
-        values = {k: v for k, v in form.items() if k in tool.arguments and not isinstance(v, StarUploadFile)}
-    kwargs = _coerce(tool, values)
+        values = {k: v for k, v in form.items() if k in tool.arguments}
+    kwargs = _coerce(tool, values, temp_dir)
 
     tool.usage = tool.usage + 1
     session.commit()

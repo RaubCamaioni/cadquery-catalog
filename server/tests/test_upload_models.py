@@ -4,6 +4,7 @@
 from pathlib import Path
 from urllib.parse import parse_qs
 import html
+import json
 
 import pytest
 from fastapi.testclient import TestClient
@@ -25,6 +26,9 @@ class BuildingRunner(StubRunner):
 
     async def run(self, tool, run_dir, on_line=None):
         result = await super().run(tool, run_dir, on_line)
+        # the run directory is removed when the test client's loop closes: keep what the app sent
+        self.args = json.loads((Path(run_dir) / "args.json").read_text())
+        self.saved = {p.name: p.read_bytes() for p in Path(run_dir).iterdir() if p.is_file()}
         if result.outcome is Outcome.OK and isinstance(result.results, dict):
             files = {}
             for key, name in (("stl", "model.stl"), ("step", "model.step"), ("preview", "preview.svg")):
@@ -91,8 +95,27 @@ def test_upload_that_fails_to_build_is_rejected_and_not_stored(monkeypatch, logg
         assert session.exec(db.select(db.Tool).where(db.Tool.name == "bad_box")).first() is None
 
 
-def test_upload_with_a_path_parameter_is_rejected_before_any_build(monkeypatch, logged_in):
+def test_upload_with_a_required_path_is_rejected_before_any_build(monkeypatch, logged_in):
     runner = BuildingRunner()
     code = "# tag\n\nfrom pathlib import Path\n\n\ndef with_file(f: Path) -> int:\n    return 1\n"
     r = upload(logged_in, monkeypatch, runner, code=code, name="with_file.py")
     assert r.status_code == 400 and "is a Path" in r.json()["detail"] and runner.calls == []
+
+
+def test_optional_file_parameter_validates_with_none_and_runs_with_the_upload(monkeypatch, logged_in, tmp_path):
+    import json
+
+    runner = BuildingRunner(built())
+    code = "# tag\n\nfrom pathlib import Path\nimport cadquery as cq\n\n\ndef relief(image: Path = None, size: float = 40) -> cq.Workplane:\n    return cq.Workplane().box(size, size, 2)\n"
+    r = upload(logged_in, monkeypatch, runner, code=code, name="relief.py")
+    assert r.status_code == 200, r.text
+    # the validation build ran with image=None
+    assert runner.args["image"] is None and runner.args["size"] == 40
+    with db.Session(db.engine) as session:
+        model_id = session.exec(db.select(db.Tool).where(db.Tool.name == "relief")).first().id
+    # a run with a file: it is saved into the run directory and passed as a path
+    r = logged_in.post(f"/model/{model_id}", files={"image": ("photo.png", b"png-bytes", "image/png")}, data={"size": "30"})
+    assert r.status_code == 200, r.text
+    run_dir = runner.calls[-1][1]
+    assert runner.args["image"] == {"__path__": str(run_dir / "photo.png")} and runner.saved["photo.png"] == b"png-bytes"
+    assert runner.args["size"] == 30.0

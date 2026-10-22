@@ -62,10 +62,12 @@ def test_shipped_models_pass(name):
     assert tool.name == name and all(t in ("int", "float", "str") or t.startswith("Literal") for t, _ in tool.arguments.values())
 
 
-def test_path_parameters_are_rejected():
+def test_path_parameters_are_optional_file_inputs():
     code = "# tag\n\nfrom pathlib import Path\n\n\ndef demo(value: int = 1, shape: Path = None) -> int:\n    return value\n"
+    assert db.create_tool(1, "demo", code).arguments["shape"] == ("Path", "None")
+    # a Path that is required (no None default) cannot be validated without a file: refused
     with pytest.raises(HTTPException) as info:
-        db.create_tool(1, "demo", code)
+        db.create_tool(1, "demo", code.replace("value: int = 1, shape: Path = None", "shape: Path, value: int = 1"))
     assert info.value.status_code == 400 and "'shape' is a Path" in info.value.detail
 
 

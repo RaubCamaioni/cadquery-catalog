@@ -3,11 +3,11 @@
 	<label class="text-dim whitespace-nowrap" for="{{ name }}">{{ name }}: <span class="text-paper">{{ py_type }}</span></label>
 
 	{% if type == "file" %}
-	{# Path argument: a [upload] bracket that shows the chosen file name; the real input stays hidden #}
-	<label id="{{ name }}-label" for="{{ name }}" class="ml-auto truncate cursor-pointer px-1 hover:bg-paper hover:text-ink">[upload]</label>
+	{# Path argument: a [upload] bracket that shows the chosen file name; the real input stays hidden.
+	   Optional: without a file the model builds its demo #}
+	<label id="{{ name }}-label" for="{{ name }}" class="ml-auto truncate cursor-pointer px-1 hover:bg-paper hover:text-ink" title="optional: without a file the model shows its demo">[upload]</label>
 	<input
 		class="sr-only"
-		required
 		type="file"
 		id="{{ name }}"
 		name="{{ name }}"
