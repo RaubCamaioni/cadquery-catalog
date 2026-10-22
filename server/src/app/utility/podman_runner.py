@@ -63,6 +63,7 @@ READY_FILE = "ready"  # the sandbox writes it once its preload is done
 GO_FILE = "go"  # the app writes it (the tool file name) to hand the job over
 PRELOAD_ENV = "SANDBOX_PRELOAD"
 WARM_CHECK_SECONDS = 1.0
+WARM_SWEEP_SECONDS = 60.0  # how often stray warm-* containers (unknown to the pool) are removed
 RUN_DIR_NAME_LENGTH = 32
 RUN_DIR_CHARS = string.ascii_letters + string.digits + "-_"
 
@@ -86,7 +87,21 @@ async def _read_tail(stream: asyncio.StreamReader) -> bytes:
             del tail[: len(tail) - OUTPUT_CAP_BYTES]
 
 
-async def run_podman(*argv: str, timeout: Optional[float] = None) -> tuple[int, str, str]:
+async def run_podman(*argv: str, timeout: Optional[float] = None, capture: bool = True) -> tuple[int, str, str]:
+    """Run podman and return (rc, stdout, stderr). `capture=False` discards the output: a detached
+    `podman run -d` hands its pipes to the container monitor, so reading them to EOF would wait
+    for the container itself to exit.
+    """
+    if not capture:
+        devnull = asyncio.subprocess.DEVNULL
+        proc = await asyncio.create_subprocess_exec(*argv, stdin=devnull, stdout=devnull, stderr=devnull)
+        try:
+            await asyncio.wait_for(proc.wait(), timeout)
+        except asyncio.TimeoutError:
+            proc.kill()
+            await proc.wait()
+            raise
+        return proc.returncode, "", ""
     proc = await asyncio.create_subprocess_exec(*argv, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
 
     async def finish():
@@ -135,6 +150,7 @@ class PodmanRunner:
         self._unavailable_reason: Optional[str] = STARTING
         self._tasks: list[asyncio.Task] = []
         self._warm: dict[Path, _Warm] = {}  # run directory -> its waiting container
+        self._last_sweep = time.monotonic()  # first sweep after WARM_SWEEP_SECONDS
 
     @property
     def available(self) -> bool:
@@ -471,11 +487,28 @@ class PodmanRunner:
         idle = sum(1 for w in self._warm.values() if not w.taken)
         for _ in range(self.config.warm_pool - idle):
             await self._start_warm()
+        if now - self._last_sweep >= WARM_SWEEP_SECONDS:
+            self._last_sweep = now
+            await self._sweep_strays()
+
+    async def _sweep_strays(self):
+        """Remove warm-* containers the pool does not know (a start reported failed, an app restart)."""
+        rc, out, _ = await self._podman("ps", "-a", "--filter", f"name=^{WARM_PREFIX}", "--format", "{{.Names}}")
+        if rc != 0:
+            return
+        known = {w.name for w in self._warm.values()}
+        for name in out.split():
+            if name not in known:
+                logger.warning(f"removing stray warm container {name}")
+                await self._podman("rm", "-f", name)
 
     async def _start_warm(self):
         run_dir = self.make_run_dir()
         name = WARM_PREFIX + run_dir.name
-        rc, _, err = await self._exec(*self.warm_command(name, run_dir), timeout=PODMAN_CALL_TIMEOUT)
+        try:
+            rc, _, err = await self._exec(*self.warm_command(name, run_dir), timeout=PODMAN_CALL_TIMEOUT, capture=False)
+        except Exception as e:
+            rc, err = 1, f"{type(e).__name__}: {e}"
         if rc != 0:
             logger.warning(f"warm container failed to start: {err.strip()}")
             await self._podman("rm", "-f", name)

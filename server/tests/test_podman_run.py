@@ -15,9 +15,10 @@ class FakePodman:
         self.calls, self.responses, self.run_delay = [], responses or {}, run_delay
         self.timeouts = []
 
-    async def __call__(self, *argv, timeout=None):
+    async def __call__(self, *argv, timeout=None, capture=True):
         self.calls.append(list(argv))
         self.timeouts.append(timeout)
+        self.captures = getattr(self, "captures", []) + [capture]
         sub = argv[1]
         if sub == "run":
             # a run longer than the caller's timeout behaves like a hung `podman run`
