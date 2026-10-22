@@ -25,6 +25,7 @@ async def test_tending_starts_one_warm_container_with_preload_and_long_timeout(t
     assert argv[1:4] == ["run", "-d", "--name"] and argv[4].startswith("warm-")
     assert "--timeout=632" in argv and "-e" in argv and "SANDBOX_PRELOAD=cadquery" in argv
     assert argv[-4:-2] == ["--wait", "600.0"] and argv[-2] == "--workdir"
+    assert fake.captures[0] is False  # detached: its pipes must not be read to EOF
     run_dir = next(iter(runner._warm))
     assert run_dir.is_dir() and argv[-1] == str(run_dir)
     # a second tend does not start another one while the first is idle
@@ -65,11 +66,11 @@ async def test_warm_run_hands_the_job_over_and_waits_for_the_container(tmp_path)
 
 async def test_warm_job_over_the_limit_is_killed_and_a_timeout(tmp_path):
     class Hanging(FakePodman):
-        async def __call__(self, *argv, timeout=None):
+        async def __call__(self, *argv, timeout=None, capture=True):
             if argv[1] == "wait":
                 self.calls.append(list(argv))
                 raise asyncio.TimeoutError
-            return await super().__call__(*argv, timeout=timeout)
+            return await super().__call__(*argv, timeout=timeout, capture=capture)
 
     fake = Hanging({"inspect": (0, "137 false", "")})
     runner = warm_runner(fake, tmp_path, SANDBOX_TIMEOUT_SECONDS=1)
