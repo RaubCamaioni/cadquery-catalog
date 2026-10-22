@@ -82,10 +82,6 @@ def _require_view(request: Request, tool) -> None:
         raise HTTPException(status_code=404, detail="Model Not Found")
 
 
-def secret_dir_name(length=32):
-    return "".join(secrets.choice(ALLOWED_CHARACTERS) for _ in range(length))
-
-
 async def delete_temp_dir(temp_dir: Path):
     try:
         with suppress(asyncio.CancelledError):
@@ -96,12 +92,9 @@ async def delete_temp_dir(temp_dir: Path):
 
 
 async def get_temp_dir():
+    # a warm sandbox container's directory when one is waiting, else a fresh one
+    temp_dir = runner.new_run_dir()
     try:
-        run_root = ENVIRONMENT.sandbox.run_dir
-        run_root.mkdir(parents=True, exist_ok=True)
-        temp_dir = run_root / secret_dir_name(32)
-        os.mkdir(temp_dir)
-        os.chmod(temp_dir, stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)
         yield temp_dir
     finally:
         task = delete_temp_dir(temp_dir)
@@ -470,7 +463,9 @@ async def run_isolated(
     stl_url, step_url = model_file_urls(root_path, result.results)
     if htmx:
         tool = db_tools.get_tool_by_id(session, id)
-        return HTMLResponse(content=render.model_result(root_path, tool.name, stl_url, step_url, result.results["meta"]))
+        return HTMLResponse(
+            content=render.model_result(root_path, tool.name, stl_url, step_url, result.results["meta"])
+        )
     return json.dumps({"stl": stl_url, "step": step_url, "meta": result.results["meta"]})
 
 
@@ -510,7 +505,9 @@ async def download_file(file_str: str, preview: bool = False):
 
     if not file_path.is_file():
         # run directories are removed ten minutes after the run (and on a restart of the app)
-        raise HTTPException(status_code=404, detail="This result has expired: files are kept for 10 minutes after a run.")
+        raise HTTPException(
+            status_code=404, detail="This result has expired: files are kept for 10 minutes after a run."
+        )
 
     # a preview is a file the result page embeds (image, audio, video, pdf): real media type, inline
     if preview and file_path.suffix.lower() in render.PREVIEW_SUFFIXES:
