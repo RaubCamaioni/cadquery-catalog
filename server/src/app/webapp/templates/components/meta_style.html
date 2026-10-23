@@ -1,0 +1,10 @@
+{# metadata editors and displays; inline because output.css is a Tailwind build only rebuilt on the server #}
+<style>
+    .meta-editor { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 0.5rem; }
+    .meta-chips { display: contents; }
+    .meta-chip { display: inline-flex; align-items: center; gap: 0.25rem; border: 1px solid currentColor; padding: 0 0.25rem; }
+    .meta-chip:first-child .meta-chip-label::before { content: var(--meta-first, ""); opacity: 0.6; }
+    .meta-editor[data-ordered] { --meta-first: "primary: "; }
+    .meta-field { flex: 1 1 12ch; min-width: 12ch; }
+    .meta-display { display: flex; flex-wrap: wrap; gap: 0.25rem 0.75rem; }
+</style>

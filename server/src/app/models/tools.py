@@ -331,6 +331,8 @@ def format_stored_tools(engine_) -> int:
 
 
 def create_db_and_tables():
+    import app.metadata  # noqa: F401  (registers the metadata tables with SQLModel)
+
     SQLModel.metadata.create_all(engine)
     migrate(engine)
     format_stored_tools(engine)

@@ -13,6 +13,8 @@
 {# Interactivity #}
 <script src="{{ root_path }}/scripts/htmx.min.js"></script>
 <script src="{{ root_path }}/scripts/_hyperscript.min.js"></script>
+<script src="{{ root_path }}/scripts/meta-editors.js?v={{ static_version }}" defer></script>
+{% include 'components/meta_style.html' %}
 <script>
     // the underscore of a console field marks the caret: measure the text before the caret and
     // place the _ there (the native caret is invisible); re-placed on every edit, click or key
