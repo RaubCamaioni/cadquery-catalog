@@ -4,11 +4,15 @@
 
 FROM python:3.12-slim-bookworm
 
+# fonts-dejavu-core: models emboss labels with CadQuery's text(), which needs a font file;
+# fontconfig-config gives OCCT's font manager its config, so runs print no fontconfig error
 RUN apt-get update && apt-get install -y --no-install-recommends \
   libgl1 \
   libxrender1 \
   libglib2.0-0 \
   libgomp1 \
+  fonts-dejavu-core \
+  fontconfig-config \
   && rm -rf /var/lib/apt/lists/*
 
 # Runtime image: no package installer. The base image's pip is removed here and the venv's after the install.
