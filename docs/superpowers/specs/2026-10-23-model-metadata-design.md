@@ -235,3 +235,22 @@ form stores its tags and categories.
 - PyTools metadata.
 - Uploader-created categories and an admin UI for the tree (the YAML is the editor).
 - Any specific later metadata kind (variations, printer profiles); the layer only leaves room for them.
+
+## Amendment (2026-10-23, after v0.5.0): editing from the profile
+
+Agreed after v0.5.0 went live; replaces "Upload and update", "Editing metadata" and the model page's `[edit]`.
+
+- All editing happens on the profile. The table gets a **category** column (the primary's label, `+n` for
+  extras), `[create]` at the top for a new model, and `[edit]` on every model row.
+- Both open one dialog (`<dialog>`, the site's terminal style): file, description, tags, categories, then
+  `[create]`/`[save]` and `[cancel]`. The file is required to create and optional to edit: without one only the
+  metadata is saved and no build runs; with one the code is replaced through the usual validation build, and a
+  failed build saves nothing. Errors show inside the dialog, which keeps its input.
+- **Description** is a new metadata kind (`app/metadata/description.py`, table `ModelDescription`): plain text,
+  trimmed, at most 1000 characters, line breaks kept, profanity-filtered. The model page shows it under the
+  title. The dialog's description box always sends `description.present`.
+- Routes: `GET /manage/model/{id}/edit` (owner or admin) returns the filled dialog, `GET /manage/model/create`
+  the empty one; `POST /manage/model/upload` (file required) and `POST /manage/model/update/{id}` (file
+  optional) both take the metadata fields. The v0.5.0 model-page edit routes
+  (`/manage/model/{id}/metadata`, `.../metadata/edit`, `/model/{id}/metadata`) are removed.
+- The model page only displays description, category breadcrumb and tags.
