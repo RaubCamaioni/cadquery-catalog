@@ -108,8 +108,10 @@ def list_items(
     end: Optional[int] = None,
     tags: Optional[list[str]] = None,
     page: int = 50,
+    category: Optional[str] = None,
 ):
-    """Render the ls-style tool list; `end` (if any) is where the next page of `page` tools starts."""
+    """Render the ls-style tool list; `end` (if any) is where the next page of `page` tools starts; the next
+    page's loader carries the search words and the category."""
     tags = tags or []
 
     htmlx = []
@@ -131,6 +133,7 @@ def list_items(
                 "start": end,
                 "end": end + page,
                 "tags": " ".join(tags),
+                "category": category,
                 "root_path": base_url or "",  # fragments rendered outside a request must be told the prefix
             },
         )

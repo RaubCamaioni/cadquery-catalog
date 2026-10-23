@@ -1,6 +1,5 @@
 """Tags and categories are set in the upload form and edited by the model's owner (or an admin)."""
 
-import pytest
 from fastapi.testclient import TestClient
 
 from app import metadata
@@ -146,7 +145,6 @@ def test_suggest_route(monkeypatch, logged_in):
     assert r.status_code == 200 and '<option value="zebra-stripe">' in r.text and "zebra-stripe · 1" in r.text
 
 
-@pytest.mark.xfail(reason="category pages arrive in Task 7", strict=True)
 def test_cleared_categories_fall_back_to_misc_page(monkeypatch, logged_in):
     post(logged_in, monkeypatch, BuildingRunner(built()), "cleared_box", META)
     model_id, _ = stored("cleared_box")
@@ -156,7 +154,9 @@ def test_cleared_categories_fall_back_to_misc_page(monkeypatch, logged_in):
         session.add(model)
         session.commit()
     logged_in.post(f"/manage/model/{model_id}/metadata", data={"categories.present": "1"})
-    assert "cleared_box" in TestClient(app).get("/c/misc").text
+    # the list is loaded into the category page by the infinite-scroll POST
+    listing = TestClient(app).post("/models?start=0&end=1000", data={"search": "cleared_box", "category": "misc"})
+    assert ">cleared_box<" in listing.text
 
 
 def test_model_page_shows_categories_tags_and_the_owners_editor(monkeypatch, logged_in):

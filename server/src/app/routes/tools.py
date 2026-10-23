@@ -151,16 +151,10 @@ async def trace_stream(token: str):
 
 
 @router.api_route("/", methods=["GET", "POST"])
-async def read_root(request: Request, session: db_tools.SessionDep):
-    return TEMPLATES.TemplateResponse(
-        request,
-        "pages/index.html",
-        {
-            "header_title": "CadQuery Catalog",
-            "request": request,
-            "root_path": request.scope.get("root_path"),
-        },
-    )
+async def read_root(request: Request, session: db_tools.SessionDep, search: str = ""):
+    from app.routes.browse import index_page
+
+    return index_page(request, session, None, search)
 
 
 @router.post("/models", response_class=JSONResponse)
@@ -178,12 +172,15 @@ async def get_tools(
     query_params = parse_qs(search_string)
     # every typed word must match the model's name or one of its tags
     tags = query_params.get("search", [""])[0].split()
-    tools = db_tools.search_models(session, tags, start, end)
+    category = query_params.get("category", [""])[0] or None  # an unknown one matches nothing
+    tools = db_tools.search_models(session, tags, start, end, category=category)
 
     if len(tools) < (end - start):
         end = None
 
-    content = render.list_items(request.scope.get("root_path"), tools, end, tags, page=end - start if end else 50)
+    content = render.list_items(
+        request.scope.get("root_path"), tools, end, tags, page=end - start if end else 50, category=category
+    )
     return HTMLResponse(content=content)
 
 
