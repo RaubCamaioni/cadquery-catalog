@@ -1,6 +1,7 @@
 from fastapi import Request, APIRouter, UploadFile, Query
 from fastapi.responses import HTMLResponse
 from fastapi.exceptions import HTTPException
+from app import metadata
 from app.models import tools
 from app.models.tools import SessionDep, User, FilterDep, get_user, lift_expired_ban
 from app.routes.auth import session_user
@@ -113,6 +114,12 @@ async def tool_upload_post(
     if db_tool is not None and db_tool.user_id != user.id:
         raise HTTPException(status_code=404, detail="Model does not belong to you.")
 
+    # metadata first: a bad field must not cost a sandbox build
+    try:
+        parsed = metadata.parse_all(metadata.form_lists(await request.form()))
+    except metadata.MetadataError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
     tool = tools.create_tool(user.id, Path(name).stem, code.decode())
     build = await validate_model(tool, temp_dir)
 
@@ -121,12 +128,14 @@ async def tool_upload_post(
         session.commit()
         session.refresh(tool)
         store_default_build(tool, build)
+        metadata.save_all(session, tool.id, parsed)
         session.commit()
     else:
         db_tool.name = tool.name
         db_tool.code = tool.code
         db_tool.arguments = tool.arguments
         store_default_build(db_tool, build)
+        metadata.save_all(session, db_tool.id, parsed)
         session.commit()
 
     return HTMLResponse(status_code=200)

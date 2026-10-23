@@ -166,6 +166,24 @@ def tool_votes(root_path, tool_id, up, down, my_vote=None, reported=False, login
     )
 
 
+def model_meta(root_path: str, model_id: int, values: dict, can_edit: bool) -> str:
+    """A model's metadata as each kind's display partial, with [edit] for its owner or an admin."""
+    from app import metadata
+
+    return TEMPLATES.get_template("components/model_meta.html").render(
+        root_path=root_path or "", model_id=model_id, kinds=metadata.KINDS, can_edit=can_edit, **values
+    )
+
+
+def model_meta_editors(root_path: str, model_id: int, values: dict) -> str:
+    """Every kind's editor filled with the model's values, with [save] and [cancel]."""
+    from app import metadata
+
+    return TEMPLATES.get_template("components/model_meta_edit.html").render(
+        root_path=root_path or "", model_id=model_id, kinds=metadata.KINDS, **values
+    )
+
+
 def list_item_user(root_path: str, tools: list[Tool]):
     template: Template = TEMPLATES.get_template("components/update_tool_item.html")
     # the rows are cells of one grid (`ls -l | column -t`): the header row aligns with them
