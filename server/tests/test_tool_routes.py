@@ -56,6 +56,11 @@ class StubRunner:
         self.on_line = on_line
         if self.raise_:
             raise self.raise_
+        if self.result.outcome is Outcome.OK and isinstance(self.result.results, dict):
+            # the host reads the build from fixed names in the run directory, as a real run leaves them
+            for name in ("model.stl", "model.step", "preview.svg"):
+                if not (Path(run_dir) / name).exists():
+                    (Path(run_dir) / name).write_text(f"<{name}>")
         return self.result
 
 
@@ -96,17 +101,21 @@ def test_code_view_without_a_trailing_newline_adds_none(monkeypatch, public_tool
 
 
 def test_run_tool_ok_renders_results(monkeypatch, public_tool):
-    c = client(monkeypatch, StubRunner(built()))
+    runner = StubRunner(built())
+    c = client(monkeypatch, runner)
     r = c.post("/model/8")
     assert r.status_code == 200
     body = json.loads(r.text)
-    assert body["stl"] == "/download/runs/a/model.stl" and body["step"] == "/download/runs/a/model.step"
+    # the links name this run's own files, whatever paths the run reported
+    run = "/download" + Path(runner.calls[-1][1]).as_posix()
+    assert body["stl"] == f"{run}/model.stl" and body["step"] == f"{run}/model.step"
     assert body["meta"]["size_mm"] == [30, 20, 10]
     # the page gets the viewer, the measurements and the download links
     page = c.post("/model/8", headers={"HX-Request": "true"}).text
-    assert '<stl-viewer url="/download/runs/a/model.stl">' in page
+    run = "/download" + Path(runner.calls[-1][1]).as_posix()
+    assert f'<stl-viewer url="{run}/model.stl">' in page
     assert "30 &times; 20 &times; 10 mm" in page and "6.00 cm&sup3;" in page
-    assert 'href="/download/runs/a/model.step" download="byte_converter.step"' in page
+    assert f'href="{run}/model.step" download="byte_converter.step"' in page
 
 
 def test_run_that_returns_no_model_is_a_failure(monkeypatch, public_tool):

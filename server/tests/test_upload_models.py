@@ -28,7 +28,7 @@ class BuildingRunner(StubRunner):
         result = await super().run(tool, run_dir, on_line)
         # the run directory is removed when the test client's loop closes: keep what the app sent
         self.args = json.loads((Path(run_dir) / "args.json").read_text())
-        self.saved = {p.name: p.read_bytes() for p in Path(run_dir).iterdir() if p.is_file()}
+        self.saved = {p.relative_to(run_dir).as_posix(): p.read_bytes() for p in Path(run_dir).rglob("*") if p.is_file()}
         if result.outcome is Outcome.OK and isinstance(result.results, dict):
             files = {}
             for key, name in (("stl", "model.stl"), ("step", "model.step"), ("preview", "preview.svg")):
@@ -113,9 +113,10 @@ def test_optional_file_parameter_validates_with_none_and_runs_with_the_upload(mo
     assert runner.args["image"] is None and runner.args["size"] == 40
     with db.Session(db.engine) as session:
         model_id = session.exec(db.select(db.Tool).where(db.Tool.name == "relief")).first().id
-    # a run with a file: it is saved into the run directory and passed as a path
+    # a run with a file: it is saved under the run directory's inputs/<argument>/ and passed as a path
     r = logged_in.post(f"/model/{model_id}", files={"image": ("photo.png", b"png-bytes", "image/png")}, data={"size": "30"})
     assert r.status_code == 200, r.text
     run_dir = runner.calls[-1][1]
-    assert runner.args["image"] == {"__path__": str(run_dir / "photo.png")} and runner.saved["photo.png"] == b"png-bytes"
+    saved = run_dir / "inputs" / "image" / "photo.png"
+    assert runner.args["image"] == {"__path__": str(saved)} and runner.saved["inputs/image/photo.png"] == b"png-bytes"
     assert runner.args["size"] == 30.0

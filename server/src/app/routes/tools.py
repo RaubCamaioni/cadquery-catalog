@@ -19,7 +19,7 @@ from starlette.datastructures import UploadFile as StarUploadFile
 from typing import Literal, get_origin, Annotated, Optional
 from contextlib import asynccontextmanager, suppress
 from zipfile import ZipFile
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from io import BytesIO
 import asyncio
 import hashlib
@@ -33,6 +33,7 @@ from app.utility import render, serializer, security
 from app.utility.podman_runner import PodmanRunner, Outcome, SandboxBusy, SandboxUnavailable
 from app.utility.trace import TraceRegistry
 from app.utility.annotations import AnnotationError, resolve_annotation
+from app.utility.build_files import BuildFileError, checked_build
 from app import TEMPLATES, ALLOWED_CHARACTERS, logger, ENVIRONMENT
 from app.models import tools as db_tools
 from app.routes.auth import User, session_user
@@ -362,6 +363,26 @@ async def public_tool(
     return HTMLResponse(status_code=200)
 
 
+UPLOAD_NAME_UNSAFE = re.compile(r"[^A-Za-z0-9._ -]")
+
+
+def _upload_path(run_dir: Path, key: str, filename: Optional[str]) -> Path:
+    """Where an uploaded file is written: its own directory, inputs/<argument>/, under a cleaned name.
+
+    The visitor's name must not reach the run directory itself, where `result.json`, `args.json`,
+    the model's file and its exports live, nor leave it. Only the last component survives, reduced to
+    plain characters and without a leading dot.
+    """
+    name = PurePosixPath((filename or "").replace("\\", "/")).name
+    name = UPLOAD_NAME_UNSAFE.sub("_", name).lstrip(". ")[:128] or key
+    directory = run_dir / "inputs" / key
+    directory.mkdir(parents=True, exist_ok=True)
+    path = directory / name
+    if path.resolve().parent != directory.resolve():
+        raise HTTPException(status_code=400, detail="Bad upload filename")
+    return path
+
+
 def _coerce(tool, values: dict, run_dir: Optional[Path] = None) -> dict:
     """Typed keyword arguments for the entrypoint: submitted values, the declared default otherwise.
     A file parameter (Path) becomes the uploaded file saved into the run directory, or None when
@@ -381,8 +402,8 @@ def _coerce(tool, values: dict, run_dir: Optional[Path] = None) -> dict:
             if upload is None or run_dir is None:
                 kwargs[key] = None
             else:
-                target = run_dir / Path(upload.filename).name  # the bare name: no directories from the client
-                with open(target, "wb") as f:
+                target = _upload_path(run_dir, key, upload.filename)
+                with open(target, "xb") as f:
                     f.write(upload.file.read())
                 kwargs[key] = target
         elif get_origin(python_type) is Literal or python_type is str:
@@ -405,11 +426,18 @@ async def build_model(tool, kwargs: dict, temp_dir: Path, on_line=None):
         serializer.dump(kwargs, f)
     # !DANGER! user submitted code
     try:
-        return await runner.run(temp_tool, temp_dir, on_line=on_line)
+        result = await runner.run(temp_tool, temp_dir, on_line=on_line)
     except SandboxBusy:
         raise HTTPException(status_code=503, detail="Server busy, try again")
     except SandboxUnavailable:
         raise HTTPException(status_code=503, detail="Sandbox unavailable")
+    # result.json is written by the run and can name any host path: keep only what the run directory holds
+    if result.outcome is Outcome.OK and isinstance(result.results, dict):
+        try:
+            result.results = checked_build(temp_dir, result.results)
+        except BuildFileError as e:
+            result.results = f"Export Error: {e}"
+    return result
 
 
 def build_failure(result) -> Optional[str]:

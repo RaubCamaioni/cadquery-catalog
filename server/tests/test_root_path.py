@@ -37,13 +37,15 @@ def test_home_page_assets_and_links_carry_the_prefix(monkeypatch, public_tool):
 
 
 def test_tool_page_and_result_links_carry_the_prefix(monkeypatch, public_tool):
-    c = prefixed_client(monkeypatch, StubRunner())
+    runner = StubRunner()
+    c = prefixed_client(monkeypatch, runner)
     page = c.get(PREFIX + "/model/8").text
     assert unprefixed_urls(page) == []
     assert f'new EventSource("{PREFIX}/trace/"' in page and f"""a[href^="{PREFIX}/download/"]""" in page
     result = c.post(PREFIX + "/model/8", headers={"HX-Request": "true"}).text
-    assert f'<stl-viewer url="{PREFIX}/download/runs/a/model.stl">' in result
-    assert f'href="{PREFIX}/download/runs/a/model.step"' in result
+    run = PREFIX + "/download" + runner.calls[-1][1].as_posix()
+    assert f'<stl-viewer url="{run}/model.stl">' in result
+    assert f'href="{run}/model.step"' in result
 
 
 def test_login_round_trip_stays_under_the_prefix(monkeypatch, github, public_tool):  # noqa: F811
