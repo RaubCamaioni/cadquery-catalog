@@ -47,36 +47,23 @@ def _editable(request: Request, session, id: int) -> tools.Tool:
 
 def display(request: Request, session, model: tools.Tool) -> str:
     values = metadata.load_all(session, [model.id])[model.id]
-    return render.model_meta(request.scope.get("root_path"), model.id, values, can_edit(request, session, model))
+    return render.model_meta(request.scope.get("root_path"), model.id, values)
 
 
-@router.get("/model/{id}/metadata", response_class=HTMLResponse)
-async def view_metadata(request: Request, id: int, session: SessionDep):
-    from app.routes.tools import _require_view
+@router.get("/manage/model/create", response_class=HTMLResponse)
+async def create_dialog(request: Request, session: SessionDep):
+    """The profile's [create]: the empty dialog."""
+    if session_user(request) is None:
+        raise HTTPException(status_code=404, detail="Not Found")
+    return HTMLResponse(render.model_dialog(request.scope.get("root_path"), None, None, {}))
 
-    model = _model(session, id)
-    _require_view(request, model)
-    return HTMLResponse(display(request, session, model))
 
-
-@router.get("/manage/model/{id}/metadata/edit", response_class=HTMLResponse)
-async def edit_metadata_form(request: Request, id: int, session: SessionDep):
+@router.get("/manage/model/{id}/edit", response_class=HTMLResponse)
+async def edit_dialog(request: Request, id: int, session: SessionDep):
+    """A row's [edit]: the dialog filled with the model's metadata (owner or admin)."""
     model = _editable(request, session, id)
     values = metadata.load_all(session, [model.id])[model.id]
-    return HTMLResponse(render.model_meta_editors(request.scope.get("root_path"), model.id, values))
-
-
-@router.post("/manage/model/{id}/metadata", response_class=HTMLResponse)
-async def edit_metadata(request: Request, id: int, session: SessionDep):
-    model = _editable(request, session, id)
-    form = metadata.form_lists(await request.form())
-    try:
-        parsed = metadata.parse_all(form)
-    except metadata.MetadataError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    metadata.save_all(session, model.id, parsed)
-    session.commit()
-    return HTMLResponse(display(request, session, model))
+    return HTMLResponse(render.model_dialog(request.scope.get("root_path"), model.id, model.name, values))
 
 
 @router.get("/tags/suggest", response_class=HTMLResponse)
