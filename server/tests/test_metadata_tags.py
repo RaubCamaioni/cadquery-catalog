@@ -87,3 +87,18 @@ def test_load_all_and_absent_kinds_keep_values(session_with_models):
     metadata.apply(session, model, {"other": ["x"]})  # a form without the tags editor
     session.commit()
     assert metadata.load_all(session, [model])[model]["tags"] == ["box"]
+
+
+def test_deleting_a_model_deletes_its_metadata(session_with_models):
+    from app.metadata.categories import ModelCategory
+    from app.metadata.tags import ModelTag
+    from app.models import tools as db
+    from sqlmodel import select
+
+    session, make = session_with_models
+    model = make("a")
+    metadata.apply(session, model, {**form("box"), "categories.present": ["1"], "categories": ["home/kitchen"]})
+    session.commit()
+    db.del_tool(session, session.get(db.Tool, model))
+    assert session.exec(select(ModelTag).where(ModelTag.model_id == model)).all() == []
+    assert session.exec(select(ModelCategory).where(ModelCategory.model_id == model)).all() == []

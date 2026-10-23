@@ -35,3 +35,12 @@ def test_fresh_database_has_nothing_to_copy(tmp_path):
     engine = create_engine(f"sqlite:///{tmp_path / 'new.db'}")
     SQLModel.metadata.create_all(engine)
     assert db.copy_json_tags(engine) == 0
+
+
+def test_copy_never_repeats_even_after_every_tag_is_removed(tmp_path):
+    engine = old_database(tmp_path, [(1, "demo", '["box"]')])
+    assert db.copy_json_tags(engine) == 1
+    with Session(engine) as session:
+        Tags().save(session, 1, [])  # the owner clears the tags
+        session.commit()
+    assert db.copy_json_tags(engine) == 0  # a restart must not bring the old ones back

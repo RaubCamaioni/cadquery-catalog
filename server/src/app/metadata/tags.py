@@ -81,8 +81,11 @@ class Tags:
             raise MetadataError(f"at most {MAX_TAGS} tags, got {len(tags)}")
         return tags
 
-    def save(self, session: Session, model_id: int, value: list[str]) -> None:
+    def delete(self, session: Session, model_id: int) -> None:
         session.exec(delete(ModelTag).where(ModelTag.model_id == model_id))
+
+    def save(self, session: Session, model_id: int, value: list[str]) -> None:
+        self.delete(session, model_id)
         for position, tag in enumerate(value):
             session.add(ModelTag(model_id=model_id, tag=tag, position=position))
 

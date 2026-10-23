@@ -181,3 +181,24 @@ def test_model_without_categories_shows_miscellaneous(monkeypatch, logged_in):
     model_id, _ = stored("misc_box")
     page = logged_in.get(f"/model/{model_id}").text
     assert 'href="/c/misc"' in page and ">Miscellaneous<" in page
+
+
+def test_banned_owner_cannot_edit_metadata(monkeypatch, logged_in):
+    post(logged_in, monkeypatch, BuildingRunner(built()), "banned_box", META)
+    model_id, _ = stored("banned_box")
+    with db.Session(db.engine) as session:
+        user_id = session.get(db.Tool, model_id).user_id
+        user = db.get_user(session, user_id)
+        user.banned = True
+        session.add(user)
+        session.commit()
+    try:
+        data = {"tags.present": "1", "tags": ["changed"]}
+        assert logged_in.post(f"/manage/model/{model_id}/metadata", data=data).status_code == 404
+        assert stored("banned_box")[1]["tags"] == ["box", "lid"]
+    finally:
+        with db.Session(db.engine) as session:
+            user = db.get_user(session, user_id)
+            user.banned = False
+            session.add(user)
+            session.commit()

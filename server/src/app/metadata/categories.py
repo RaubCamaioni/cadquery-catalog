@@ -65,8 +65,11 @@ class Categories:
             raise MetadataError("misc cannot be combined with other categories")
         return paths
 
-    def save(self, session: Session, model_id: int, value: list[str]) -> None:
+    def delete(self, session: Session, model_id: int) -> None:
         session.exec(delete(ModelCategory).where(ModelCategory.model_id == model_id))
+
+    def save(self, session: Session, model_id: int, value: list[str]) -> None:
+        self.delete(session, model_id)
         for position, path in enumerate(value):
             session.add(ModelCategory(model_id=model_id, path=path, position=position))
 

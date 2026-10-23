@@ -27,6 +27,9 @@ class MetadataKind(Protocol):
     def load(self, session: Session, model_ids: list[int]) -> dict[int, Any]:
         """The value for every id in `model_ids` (an empty value for a model with none)."""
 
+    def delete(self, session: Session, model_id: int) -> None:
+        """Remove the model's rows (the model is being deleted; SQLite may reuse its id)."""
+
 
 def form_lists(form) -> dict[str, list[str]]:
     """Starlette FormData (or any multi-dict) as {name: [values]}, file fields dropped."""
@@ -51,6 +54,12 @@ def save_all(session: Session, model_id: int, parsed: dict[str, Any]) -> None:
 
 def apply(session: Session, model_id: int, form: Mapping[str, list[str]]) -> None:
     save_all(session, model_id, parse_all(form))
+
+
+def delete_all(session: Session, model_id: int) -> None:
+    """Stage the removal of every kind's rows for a model; the caller commits."""
+    for kind in KINDS:
+        kind.delete(session, model_id)
 
 
 def load_all(session: Session, model_ids: list[int]) -> dict[int, dict[str, Any]]:

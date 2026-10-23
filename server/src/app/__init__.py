@@ -48,11 +48,13 @@ TEMPLATES = Jinja2Templates(directory=APP_DIRECTORY / "webapp" / "templates", co
 
 
 def _static_version() -> str:
-    """Content hash of the built stylesheet: browsers re-fetch /static/*.css?v=... after every release."""
+    """Content hash of the built stylesheet and the site's own scripts: browsers re-fetch them (?v=...) after
+    every release that changes one."""
     import hashlib
 
     try:
         css = (APP_DIRECTORY / "webapp" / "static" / "output.css").read_bytes()
+        css += (APP_DIRECTORY / "webapp" / "scripts" / "meta-editors.js").read_bytes()
     except OSError:
         return "0"
     return hashlib.sha256(css).hexdigest()[:12]

@@ -13,7 +13,7 @@ from fastapi.responses import HTMLResponse
 from app import metadata
 from app.metadata.tags import suggest
 from app.models import tools
-from app.models.tools import SessionDep, get_user
+from app.models.tools import SessionDep, get_user, lift_expired_ban
 from app.routes.auth import session_user
 from app.utility import render
 
@@ -24,7 +24,10 @@ def can_edit(request: Request, session, model: tools.Tool) -> bool:
     account = session_user(request)
     if account is None:
         return False
-    user = get_user(session, account.id)  # the admin flag is read from the database, never the cookie
+    user = get_user(session, account.id)  # admin and banned are read from the database, never the cookie
+    lift_expired_ban(session, user)
+    if user.banned:
+        return False
     return model.user_id == user.id or user.admin
 
 

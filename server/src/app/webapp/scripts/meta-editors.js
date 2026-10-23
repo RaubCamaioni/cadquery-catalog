@@ -49,6 +49,12 @@
     function add(editor, value, text) {
         const max = parseInt(editor.dataset.max || "0", 10);
         if (!value || values(editor).includes(value)) return;
+        // Miscellaneous means "nowhere else": the server refuses it next to a real category
+        const misc = editor.dataset.alone;
+        if (misc && values(editor).length && (value === misc || values(editor).includes(misc))) {
+            note(editor, "Miscellaneous cannot be combined with other categories");
+            return;
+        }
         if (max && values(editor).length >= max) {
             note(editor, `at most ${max}`);
             return;
@@ -107,9 +113,32 @@
         const b = e.target.closest(".meta-remove, .meta-left, .meta-right");
         if (!b) return;
         const c = b.closest(".meta-chip");
+        const editor = c.closest(".meta-editor");
         if (b.classList.contains("meta-remove")) c.remove();
         else if (b.classList.contains("meta-left") && c.previousElementSibling) c.after(c.previousElementSibling);
         else if (b.classList.contains("meta-right") && c.nextElementSibling) c.before(c.nextElementSibling);
-        note(c.closest(".meta-editor") || document, "");
+        note(editor, "");
     });
+
+    // text still in a box when the form is sent becomes a chip first, so it is not silently dropped; this
+    // capture listener runs before htmx's own submit handler reads the form
+    document.addEventListener("submit", e => {
+        for (const input of e.target.querySelectorAll(".meta-input")) {
+            if (!input.value.trim()) continue;
+            const editor = input.closest(".meta-editor");
+            if (editor.dataset.free) addTyped(editor, input);
+            else addPicked(editor, input);
+        }
+    }, true);
+
+    // the message for a failed request: FastAPI's detail is a string, or a list for a 422; anything else is
+    // a server error
+    window.metaError = function (xhr) {
+        try {
+            const detail = JSON.parse(xhr.response).detail;
+            if (typeof detail === "string") return detail;
+            if (Array.isArray(detail)) return detail.map(d => d.msg || String(d)).join("; ");
+        } catch (err) { /* not JSON */ }
+        return `request failed (${xhr.status})`;
+    };
 })();

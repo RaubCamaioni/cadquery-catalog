@@ -272,6 +272,9 @@ def get_tool(session: Session, id: Optional[int]):
 def del_tool(session: Session, tool: Tool):
     if not tool:
         return False
+    from app import metadata
+
+    metadata.delete_all(session, tool.id)  # no cascade in SQLite: a reused id must not inherit them
     session.delete(tool)
     session.commit()
     return True
@@ -305,17 +308,25 @@ def migrate(engine_) -> None:
                     conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {column} {definition}"))
 
 
+class DoneMigration(SQLModel, table=True):
+    """One-time data migrations that have run."""
+
+    name: str = Field(primary_key=True)
+
+
 def copy_json_tags(engine_) -> int:
     """Tags used to live in a JSON column on the tool row, read from line 1 with the model name appended. Copy
     them into ModelTag once (while ModelTag is empty); the old column is left in place, unused."""
     from app.metadata import MetadataError
     from app.metadata.tags import ModelTag, normalise
 
-    if "tags" not in {c["name"] for c in inspect(engine_).get_columns("tool")}:
-        return 0
     copied = 0
     with Session(engine_) as session:
-        if session.exec(select(ModelTag)).first() is not None:
+        if session.get(DoneMigration, "json-tags") is not None:
+            return 0
+        session.add(DoneMigration(name="json-tags"))
+        if "tags" not in {c["name"] for c in inspect(engine_).get_columns("tool")}:
+            session.commit()  # a fresh database: nothing to copy, ever
             return 0
         for model_id, name, raw in session.exec(text("SELECT id, name, tags FROM tool")).all():
             tags: list[str] = []
