@@ -32,6 +32,7 @@ import os
 from app.utility import render, serializer, security
 from app.utility.podman_runner import PodmanRunner, Outcome, SandboxBusy, SandboxUnavailable
 from app.utility.trace import TraceRegistry
+from app.utility.annotations import AnnotationError, resolve_annotation
 from app import TEMPLATES, ALLOWED_CHARACTERS, logger, ENVIRONMENT
 from app.models import tools as db_tools
 from app.routes.auth import User, session_user
@@ -369,7 +370,12 @@ def _coerce(tool, values: dict, run_dir: Optional[Path] = None) -> dict:
     kwargs = {}
     for key, (type_name, default) in tool.arguments.items():
         value = values.get(key, default)
-        python_type = eval(type_name)  # the annotation was validated at upload (int, float, str, Literal, Path)
+        # the stored annotation is mapped to a type through an allow-list, never evaluated: this runs
+        # in the web app, outside the sandbox
+        try:
+            python_type = resolve_annotation(type_name)
+        except AnnotationError:
+            raise HTTPException(status_code=400, detail=f"Argument Error: '{key}' has an unsupported annotation")
         if python_type is Path:
             upload = value if isinstance(value, StarUploadFile) and value.filename else None
             if upload is None or run_dir is None:
