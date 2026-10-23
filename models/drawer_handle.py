@@ -1,5 +1,3 @@
-# handle, pull, drawer, cabinet, grip
-
 import cadquery as cq
 
 

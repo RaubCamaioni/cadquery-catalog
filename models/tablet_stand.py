@@ -1,5 +1,3 @@
-# tablet, stand, desk, angle, kitchen
-
 import math
 import cadquery as cq
 

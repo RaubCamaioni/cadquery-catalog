@@ -1,5 +1,3 @@
-# cable, tie, zip, mount, anchor
-
 import cadquery as cq
 
 

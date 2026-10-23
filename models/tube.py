@@ -1,5 +1,3 @@
-# tube, pipe, sleeve, bushing, cylinder
-
 import cadquery as cq
 
 

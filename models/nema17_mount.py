@@ -1,5 +1,3 @@
-# nema17, motor, mount, stepper, bracket
-
 import cadquery as cq
 
 

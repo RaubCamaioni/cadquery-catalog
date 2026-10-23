@@ -1,5 +1,3 @@
-# laptop, stand, desk, riser, ergonomic
-
 import math
 import cadquery as cq
 

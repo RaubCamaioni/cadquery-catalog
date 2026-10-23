@@ -63,7 +63,7 @@ def test_login_round_trip_stays_under_the_prefix(monkeypatch, github, public_too
 
 def test_listing_pages_and_their_loader_carry_the_prefix(monkeypatch, public_tool):
     # the second page is requested by a loader rendered inside the first page's response
-    monkeypatch.setattr(tools_routes.db_tools, "get_tools_by_index", lambda *a, **k: [(n, f"t{n}") for n in range(50)])
+    monkeypatch.setattr(tools_routes.db_tools, "search_models", lambda *a, **k: [(n, f"t{n}") for n in range(50)])
     page = prefixed_client(monkeypatch).post(PREFIX + "/models?start=0&end=50").text
     assert unprefixed_urls(page) == [] and f'hx-post="{PREFIX}/models?start=50&end=100"' in page
 

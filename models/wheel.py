@@ -1,5 +1,3 @@
-# wheel, robot, axle, tire, rc
-
 import cadquery as cq
 
 

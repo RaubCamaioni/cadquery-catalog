@@ -1,5 +1,3 @@
-# knob, dial, handle, potentiometer, shaft
-
 from typing import Literal
 import cadquery as cq
 

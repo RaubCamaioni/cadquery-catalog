@@ -7,13 +7,13 @@ from app.utility import render
 
 def test_list_items_loader_requests_a_full_next_page():
     tools = [(i, f"tool{i}") for i in range(50)]
-    html = render.list_items("", tools, end=50, tags=[], page=50)
+    html = render.list_items("", tools, end=50, page=50)
     # the infinite-scroll loader must fetch the next 50, not one tool at a time
     assert re.search(r'hx-post="/models\?start=50&(amp;)?end=100"', html), html[-300:]
 
 
 def test_list_items_without_more_pages_has_no_loader():
-    html = render.list_items("", [(1, "a")], end=None, tags=[])
+    html = render.list_items("", [(1, "a")], end=None)
     assert "hx-post" not in html
 
 
@@ -96,7 +96,7 @@ def test_argument_inputs_are_console_fields():
 def test_user_tool_table_starts_with_a_header_row():
     from app.models.tools import Tool
 
-    html = render.list_item_user("", [Tool(id=1, name="a", code="", public=True, annonymous=True, usage=3, tags=[])])
+    html = render.list_item_user("", [Tool(id=1, name="a", code="", public=True, annonymous=True, usage=3)])
     assert html.index("NAME") < html.index("MODE") < html.index("RUNS") < html.index("ACTIONS") < html.index("a.py")
     assert html.index("a.py") < html.index("[public]")  # the name, the row's identifier, comes first
     assert html.index("ACTIONS") < html.index("[upload]") < html.index("a.py")  # the upload row leads the table

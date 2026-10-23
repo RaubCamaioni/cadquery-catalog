@@ -1,5 +1,3 @@
-# sd, card, holder, memory, organizer
-
 from typing import Literal
 import cadquery as cq
 

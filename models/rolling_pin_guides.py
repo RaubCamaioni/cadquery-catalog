@@ -1,5 +1,3 @@
-# rolling pin, dough, baking, thickness, kitchen
-
 from pathlib import Path
 import cadquery as cq
 

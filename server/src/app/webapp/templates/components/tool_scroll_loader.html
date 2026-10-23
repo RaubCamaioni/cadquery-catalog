@@ -2,5 +2,5 @@
 	hx-post="{{ root_path }}/models?start={{ start }}&end={{ end }}"
 	hx-trigger="revealed"
 	hx-swap="outerHTML"
-	hx-vals='{"search": "{{ tags }}" }'
+	hx-vals='{{ {"search": tags, "category": category or ""} | tojson }}'
 	class="px-1 text-dim">...</li>

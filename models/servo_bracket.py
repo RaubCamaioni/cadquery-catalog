@@ -1,5 +1,3 @@
-# servo, bracket, sg90, mount, robot
-
 import cadquery as cq
 
 

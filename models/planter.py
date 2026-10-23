@@ -1,5 +1,3 @@
-# planter, pot, plant, garden, drainage
-
 import cadquery as cq
 
 

@@ -1,5 +1,3 @@
-# coupler, shaft, motor, coupling, bore
-
 import cadquery as cq
 
 

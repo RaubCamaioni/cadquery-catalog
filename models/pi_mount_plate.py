@@ -1,5 +1,3 @@
-# raspberry, pi, mount, plate, standoff
-
 import cadquery as cq
 
 

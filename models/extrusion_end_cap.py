@@ -1,5 +1,3 @@
-# extrusion, end, cap, 2020, cover
-
 import cadquery as cq
 
 

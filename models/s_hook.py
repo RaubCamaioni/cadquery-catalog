@@ -1,5 +1,3 @@
-# s, hook, hanging, kitchen, rail
-
 import cadquery as cq
 
 

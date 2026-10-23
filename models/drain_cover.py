@@ -1,5 +1,3 @@
-# drain, cover, sink, strainer, shower
-
 import math
 import cadquery as cq
 

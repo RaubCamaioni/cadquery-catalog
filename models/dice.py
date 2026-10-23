@@ -1,5 +1,3 @@
-# dice, d6, game, pips, cube
-
 import cadquery as cq
 
 

@@ -1,5 +1,3 @@
-# bottle, opener, wall, mount, bar
-
 import cadquery as cq
 
 

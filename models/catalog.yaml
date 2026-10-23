@@ -1,0 +1,392 @@
+# Metadata for the models in this folder: tags and categories (paths from server/src/app/categories.yaml,
+# the first is the primary). Applied to the live catalog with `catalog-admin apply-manifest`.
+bag_clip:
+  tags: [bag, clip, kitchen, spring, closure]
+  categories: [home/kitchen]
+battery_tray:
+  tags: [battery, tray, holder, aa, aaa, organizer]
+  categories: [home/storage, hardware/electronics]
+bearing_holder:
+  tags: [bearing, holder, 608, pocket, mount]
+  categories: [hardware/mounts]
+bike_wall_hook:
+  tags: [bike, wall, hook, garage, wheel]
+  categories: [outdoor/garage]
+blank_wall_plate:
+  tags: [wall, plate, blank, switch, cover]
+  categories: [home/fixtures]
+bookend:
+  tags: [bookend, shelf, books, desk, weight]
+  categories: [office/desk]
+bottle_holder:
+  tags: [bottle, holder, wall, ring, spray]
+  categories: [home/wall]
+bowl:
+  tags: [bowl, dish, revolve, kitchen, decor]
+  categories: [home/decor]
+broom_holder:
+  tags: [broom, holder, wall, clip, spring]
+  categories: [home/wall]
+bushing:
+  tags: [bushing, sleeve, bearing, flange, shaft]
+  categories: [hardware/fasteners]
+business_card_holder:
+  tags: [business, card, holder, desk, display]
+  categories: [office/desk]
+cable_clip:
+  tags: [cable, clip, cord, organizer, desk]
+  categories: [office/cables]
+cable_comb:
+  tags: [cable, comb, sleeving, pc, management]
+  categories: [office/cables]
+cable_grommet:
+  tags: [grommet, desk, cable, hole, cover]
+  categories: [office/cables]
+cable_spool:
+  tags: [cable, spool, winder, cord, organizer]
+  categories: [office/cables]
+cable_tie_mount:
+  tags: [cable, tie, zip, mount, anchor]
+  categories: [office/cables]
+calibration_cube:
+  tags: [calibration, cube, test, printer, tolerance]
+  categories: [workshop/printing]
+card_deck_box:
+  tags: [card, deck, box, playing, tuck]
+  categories: [hobbies/games]
+coaster:
+  tags: [coaster, drink, cup, round, hexagon]
+  categories: [home/kitchen]
+container_with_lid:
+  tags: [container, box, lid, storage]
+  categories: [home/storage]
+controller_stand:
+  tags: [controller, stand, gaming, desk, cradle]
+  categories: [office/stands]
+cookie_cutter:
+  tags: [cookie, cutter, kitchen, baking, shape]
+  categories: [home/kitchen]
+cord_cover:
+  tags: [cord, cover, floor, cable, ramp]
+  categories: [office/cables]
+corner_protector:
+  tags: [corner, protector, guard, furniture, bumper]
+  categories: [home/fixtures]
+cup_holder_insert:
+  tags: [cup, holder, car, insert, adapter]
+  categories: [outdoor/garage]
+cup_tray:
+  tags: [tray, cups, round, organizer, paint]
+  categories: [workshop/tool-storage, hobbies/crafts]
+cutting_board_rack:
+  tags: [cutting, board, rack, kitchen, stand]
+  categories: [home/kitchen]
+desk_cable_clamp:
+  tags: [desk, cable, clamp, edge, clip]
+  categories: [office/cables]
+dice:
+  tags: [dice, d6, game, pips, cube]
+  categories: [hobbies/games]
+door_wedge:
+  tags: [door, stop, wedge, shim, household]
+  categories: [home/fixtures]
+drain_cover:
+  tags: [drain, cover, sink, strainer, shower]
+  categories: [home/bathroom]
+drawer_divider:
+  tags: [drawer, divider, organizer, strip, kitchen]
+  categories: [home/storage]
+drawer_handle:
+  tags: [handle, pull, drawer, cabinet, grip]
+  categories: [home/fixtures]
+drawer_tray:
+  tags: [tray, drawer, organizer, divider, storage]
+  categories: [home/storage]
+earring_holder:
+  tags: [earring, holder, jewelry, stand, display]
+  categories: [home/bedroom]
+egg_holder:
+  tags: [egg, holder, kitchen, tray, fridge]
+  categories: [home/kitchen]
+extrusion_corner_bracket:
+  tags: [extrusion, corner, bracket, 2020, joint]
+  categories: [hardware/mounts]
+extrusion_end_cap:
+  tags: [extrusion, end, cap, 2020, cover]
+  categories: [hardware/mounts]
+fan_guard:
+  tags: [fan, guard, grill, cooling, pc]
+  categories: [hardware/electronics]
+french_cleat:
+  tags: [cleat, french, wall, hanger, mount]
+  categories: [home/wall]
+funnel:
+  tags: [funnel, kitchen, workshop, pour, cone]
+  categories: [workshop/shop-aids, home/kitchen]
+glasses_stand:
+  tags: [glasses, stand, eyeglass, holder, desk]
+  categories: [home/bedroom]
+gridfinity_baseplate:
+  tags: [gridfinity, baseplate, storage, modular, workshop]
+  categories: [workshop/tool-storage]
+gridfinity_bin:
+  tags: [gridfinity, bin, storage, modular, workshop]
+  categories: [workshop/tool-storage]
+headphone_hook:
+  tags: [headphone, hook, desk, hanger, clamp]
+  categories: [office/stands]
+hex_bit_holder:
+  tags: [bit, holder, hex, tool, organizer]
+  categories: [workshop/tool-storage]
+hex_key_holder:
+  tags: [hex, key, allen, holder, workshop]
+  categories: [workshop/tool-storage]
+hex_tray:
+  tags: [tray, dish, hexagon, bowl, catchall]
+  categories: [home/decor]
+hinge:
+  tags: [hinge, print, in, place, knuckle]
+  categories: [hardware/mechanisms]
+honeycomb_wall_panel:
+  tags: [honeycomb, wall, panel, hsw, workshop]
+  categories: [workshop/tool-storage]
+hook_rail:
+  tags: [hooks, rail, coat, keys, wall]
+  categories: [home/wall]
+hose_hanger:
+  tags: [hose, hanger, garden, wall, reel]
+  categories: [outdoor/garden]
+ice_cube_tray:
+  tags: [ice, cube, tray, kitchen, silicone]
+  categories: [home/kitchen]
+image_relief:
+  tags: [image, relief, depth, map, lithophane, heightmap]
+  categories: [home/decor]
+key_holder:
+  tags: [keys, holder, wall, hooks, entryway]
+  categories: [home/wall]
+knife_block:
+  tags: [knife, block, kitchen, slots, holder]
+  categories: [home/kitchen]
+knob:
+  tags: [knob, dial, handle, potentiometer, shaft]
+  categories: [hardware/mechanisms]
+l_bracket:
+  tags: [bracket, angle, shelf, corner, mount]
+  categories: [hardware/mounts]
+lamp_shade:
+  tags: [lamp, shade, light, decor, polygon]
+  categories: [home/decor]
+laptop_stand:
+  tags: [laptop, stand, desk, riser, ergonomic]
+  categories: [office/stands]
+led_channel:
+  tags: [led, strip, channel, diffuser, lighting]
+  categories: [hardware/electronics]
+measuring_cup:
+  tags: [cup, measuring, kitchen, baking, volume]
+  categories: [home/kitchen]
+measuring_scoop:
+  tags: [scoop, measuring, kitchen, spoon, volume, ml, tsp, tbsp, cup]
+  categories: [home/kitchen]
+monitor_riser:
+  tags: [monitor, riser, desk, stand, shelf]
+  categories: [office/stands]
+napkin_holder:
+  tags: [napkin, holder, kitchen, table, upright]
+  categories: [home/kitchen]
+nema17_mount:
+  tags: [nema17, motor, mount, stepper, bracket]
+  categories: [hardware/mounts]
+nut_trap_block:
+  tags: [nut, trap, block, captive, fastener]
+  categories: [hardware/fasteners]
+paper_towel_holder:
+  tags: [paper, towel, holder, kitchen, roll]
+  categories: [home/kitchen]
+parts_sorter:
+  tags: [sorter, parts, tray, tilted, workshop]
+  categories: [workshop/tool-storage]
+pegboard_bin:
+  tags: [pegboard, bin, cup, workshop, hook]
+  categories: [workshop/tool-storage, home/storage]
+pegboard_hook:
+  tags: [pegboard, hook, workshop, tool, wall]
+  categories: [workshop/tool-storage]
+pen_cup:
+  tags: [pen, cup, holder, desk, pencil]
+  categories: [office/desk]
+pencil_tray:
+  tags: [pencil, tray, desk, pen, groove]
+  categories: [office/desk]
+phone_stand:
+  tags: [phone, tablet, stand, desk, holder]
+  categories: [office/stands]
+pi_mount_plate:
+  tags: [raspberry, pi, mount, plate, standoff]
+  categories: [hardware/electronics]
+picture_frame:
+  tags: [frame, picture, photo, display, wall]
+  categories: [home/decor]
+pill_organizer:
+  tags: [pill, organizer, weekly, tray, compartments]
+  categories: [home/bedroom]
+plant_marker:
+  tags: [plant, marker, label, garden, stake]
+  categories: [outdoor/garden]
+planter:
+  tags: [planter, pot, plant, garden, drainage]
+  categories: [outdoor/garden]
+pot_lid_rack:
+  tags: [pot, lid, rack, kitchen, cabinet]
+  categories: [home/kitchen]
+power_strip_cover:
+  tags: [power, strip, cover, cable, box]
+  categories: [office/cables]
+project_box:
+  tags: [enclosure, project, box, electronics, lid]
+  categories: [hardware/electronics]
+pulley:
+  tags: [pulley, belt, wheel, groove, mechanism]
+  categories: [hardware/mechanisms]
+rack_gear:
+  tags: [rack, gear, linear, module, mechanism]
+  categories: [hardware/mechanisms]
+remote_caddy:
+  tags: [remote, caddy, organizer, sofa, slots]
+  categories: [home/storage]
+ring:
+  tags: [ring, washer, spacer]
+  categories: [hardware/fasteners]
+rolling_pin_guides:
+  tags: [rolling-pin, dough, baking, thickness, kitchen]
+  categories: [home/kitchen]
+router_shelf:
+  tags: [router, shelf, wall, mount, strap]
+  categories: [home/wall]
+rubber_foot:
+  tags: [foot, bumper, pad, furniture, electronics]
+  categories: [home/fixtures]
+ruler:
+  tags: [ruler, measure, mm, scale, desk]
+  categories: [office/desk]
+s_hook:
+  tags: [s, hook, hanging, kitchen, rail]
+  categories: [home/kitchen]
+sanding_block:
+  tags: [sanding, block, workshop, grip, paper]
+  categories: [workshop/shop-aids]
+sd_card_holder:
+  tags: [sd, card, holder, memory, organizer]
+  categories: [office/desk]
+seed_tray:
+  tags: [seed, tray, garden, starter, cells]
+  categories: [outdoor/garden]
+servo_bracket:
+  tags: [servo, bracket, sg90, mount, robot]
+  categories: [hardware/mounts]
+shaft_coupler:
+  tags: [coupler, shaft, motor, coupling, bore]
+  categories: [hardware/mechanisms]
+shelf_bracket:
+  tags: [shelf, bracket, wall, support, triangle]
+  categories: [home/wall]
+shim_set:
+  tags: [shim, spacer, set, leveling, washer]
+  categories: [workshop/shop-aids]
+sliding_lid_box:
+  tags: [box, sliding, lid, storage, groove]
+  categories: [home/storage]
+small_parts_bin:
+  tags: [bin, parts, storage, stackable, workshop]
+  categories: [workshop/tool-storage, home/storage]
+soap_dish:
+  tags: [soap, dish, bathroom, drain, tray]
+  categories: [home/bathroom]
+spacer:
+  tags: [spacer, standoff, washer, hardware]
+  categories: [hardware/fasteners]
+spaghetti_measure:
+  tags: [spaghetti, pasta, portion, measuring, kitchen]
+  categories: [home/kitchen]
+spice_rack:
+  tags: [spice, rack, kitchen, tiered, jars]
+  categories: [home/kitchen]
+spool_holder:
+  tags: [spool, filament, holder, printer, stand]
+  categories: [workshop/printing]
+spur_gear:
+  tags: [gear, spur, involute, module, teeth, mechanism]
+  categories: [hardware/mechanisms]
+stackable_box:
+  tags: [box, stackable, crate, storage, lip]
+  categories: [home/storage]
+standoff_plate:
+  tags: [pcb, standoff, mount, plate, electronics]
+  categories: [hardware/electronics]
+stl_coaster:
+  tags: [stl, coaster, emboss, silhouette, mesh]
+  categories: [home/decor, home/kitchen]
+storage_box:
+  tags: [box, container, storage, organizer]
+  categories: [home/storage]
+t_nut:
+  tags: [t, nut, extrusion, 2020, slot]
+  categories: [hardware/fasteners]
+tablet_stand:
+  tags: [tablet, stand, desk, angle, kitchen]
+  categories: [office/stands, home/kitchen]
+tea_light_holder:
+  tags: [tea, light, candle, holder, decor]
+  categories: [home/decor]
+test_tube_rack:
+  tags: [test, tube, rack, lab, holder]
+  categories: [hobbies/science]
+thread_spool_rack:
+  tags: [thread, spool, rack, sewing, pegs]
+  categories: [hobbies/crafts]
+tolerance_test:
+  tags: [tolerance, test, fit, clearance, printer]
+  categories: [workshop/printing]
+tool_rack:
+  tags: [tool, rack, pliers, wrench, workshop]
+  categories: [workshop/tool-storage]
+toothbrush_holder:
+  tags: [toothbrush, holder, bathroom, cup, drain]
+  categories: [home/bathroom]
+trivet:
+  tags: [trivet, kitchen, hexagon, honeycomb, hot]
+  categories: [home/kitchen]
+tube:
+  tags: [tube, pipe, sleeve, bushing, cylinder]
+  categories: [hardware/fasteners]
+tube_squeezer:
+  tags: [tube, squeezer, toothpaste, key, roller]
+  categories: [home/bathroom]
+twisted_vase:
+  tags: [vase, twisted, decor, polygon, spiral]
+  categories: [home/decor]
+usb_stick_holder:
+  tags: [usb, stick, holder, flash, organizer]
+  categories: [office/desk]
+vent_cover:
+  tags: [vent, cover, louver, grille, duct]
+  categories: [home/fixtures]
+wall_bottle_opener:
+  tags: [bottle, opener, wall, mount, bar]
+  categories: [outdoor/garage]
+wall_hook:
+  tags: [hook, wall, hanger, coat, screw]
+  categories: [home/wall]
+washer:
+  tags: [washer, spacer, ring, hardware, shim]
+  categories: [hardware/fasteners]
+watch_stand:
+  tags: [watch, stand, charger, desk, display]
+  categories: [home/bedroom]
+wheel:
+  tags: [wheel, robot, axle, tire, rc]
+  categories: [hardware/mechanisms]
+yarn_bowl:
+  tags: [yarn, bowl, knitting, crochet, craft]
+  categories: [hobbies/crafts]

@@ -1,5 +1,3 @@
-# thread, spool, rack, sewing, pegs
-
 import cadquery as cq
 
 

@@ -1,5 +1,3 @@
-# enclosure, project, box, electronics, lid
-
 import cadquery as cq
 
 

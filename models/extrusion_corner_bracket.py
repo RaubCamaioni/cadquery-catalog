@@ -1,5 +1,3 @@
-# extrusion, corner, bracket, 2020, joint
-
 import cadquery as cq
 
 

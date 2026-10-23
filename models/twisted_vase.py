@@ -1,5 +1,3 @@
-# vase, twisted, decor, polygon, spiral
-
 import cadquery as cq
 
 

@@ -1,5 +1,3 @@
-# fan, guard, grill, cooling, pc
-
 import cadquery as cq
 
 

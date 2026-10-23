@@ -1,5 +1,3 @@
-# bike, wall, hook, garage, wheel
-
 import cadquery as cq
 
 

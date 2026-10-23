@@ -1,5 +1,3 @@
-# bit, holder, hex, tool, organizer
-
 import cadquery as cq
 
 

@@ -1,5 +1,3 @@
-# watch, stand, charger, desk, display
-
 import cadquery as cq
 
 

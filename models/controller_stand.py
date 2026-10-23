@@ -1,5 +1,3 @@
-# controller, stand, gaming, desk, cradle
-
 import cadquery as cq
 
 

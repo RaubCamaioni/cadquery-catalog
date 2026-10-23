@@ -1,5 +1,3 @@
-# earring, holder, jewelry, stand, display
-
 import cadquery as cq
 
 

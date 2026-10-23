@@ -97,7 +97,7 @@ def test_tool_argument_named_trace_keeps_the_users_value(monkeypatch, tmp_path):
         tools_routes.db_tools,
         "get_tool_by_id",
         lambda session, id: tools_routes.db_tools.Tool(
-            id=9, name="t", code="def t(trace: str): return trace", arguments={"trace": ("str", "")}, public=True, tags=[]
+            id=9, name="t", code="def t(trace: str): return trace", arguments={"trace": ("str", "")}, public=True
         ),
     )
     env = tools_routes.ENVIRONMENT

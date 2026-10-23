@@ -1,5 +1,3 @@
-# tray, dish, hexagon, bowl, catchall
-
 import cadquery as cq
 
 

@@ -1,5 +1,3 @@
-# bag, clip, kitchen, spring, closure
-
 import cadquery as cq
 
 

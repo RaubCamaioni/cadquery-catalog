@@ -1,5 +1,3 @@
-# bracket, angle, shelf, corner, mount
-
 import cadquery as cq
 
 

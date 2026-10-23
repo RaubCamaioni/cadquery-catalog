@@ -1,0 +1,9 @@
+{# a model's tags, each a search for that tag #}
+{% if tags %}
+<div class="meta-display">
+    <span class="text-dim">tags:</span>
+    {%- for tag in tags %}
+    <a href="{{ root_path }}/?search={{ tag | urlencode }}" class="no-underline hover:bg-paper hover:text-ink">#{{ tag }}</a>
+    {%- endfor %}
+</div>
+{% endif %}

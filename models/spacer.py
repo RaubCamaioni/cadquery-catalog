@@ -1,5 +1,3 @@
-# spacer, standoff, washer, hardware
-
 from typing import Literal
 import cadquery as cq
 

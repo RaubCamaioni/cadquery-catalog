@@ -1,5 +1,3 @@
-# spool, filament, holder, printer, stand
-
 import cadquery as cq
 
 

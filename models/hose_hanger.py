@@ -1,5 +1,3 @@
-# hose, hanger, garden, wall, reel
-
 import cadquery as cq
 
 

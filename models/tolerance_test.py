@@ -1,5 +1,3 @@
-# tolerance, test, fit, clearance, printer
-
 import cadquery as cq
 
 

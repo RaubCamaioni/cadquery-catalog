@@ -1,5 +1,3 @@
-# napkin, holder, kitchen, table, upright
-
 import cadquery as cq
 
 

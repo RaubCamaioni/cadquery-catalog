@@ -1,5 +1,3 @@
-# monitor, riser, desk, stand, shelf
-
 import cadquery as cq
 
 

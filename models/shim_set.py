@@ -1,5 +1,3 @@
-# shim, spacer, set, leveling, washer
-
 import cadquery as cq
 
 

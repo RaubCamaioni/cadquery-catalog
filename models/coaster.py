@@ -1,5 +1,3 @@
-# coaster, drink, cup, round, hexagon
-
 from typing import Literal
 import cadquery as cq
 

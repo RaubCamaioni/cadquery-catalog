@@ -1,5 +1,3 @@
-# rack, gear, linear, module, mechanism
-
 import math
 import cadquery as cq
 

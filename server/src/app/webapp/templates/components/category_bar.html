@@ -1,0 +1,19 @@
+{# the category tree under the search box: each category opens to its subcategories; counts are public models.
+   Miscellaneous has no subcategories and is a plain link. #}
+<nav id="category-bar" class="flex flex-wrap items-start gap-x-4 gap-y-1 mt-2" aria-label="categories">
+    {%- for c in bar %}
+    {%- if c.subs %}
+    <details class="category"{% if c.open %} open{% endif %}>
+        <summary class="cursor-pointer hover:bg-paper hover:text-ink px-1">{{ c.name }} <span class="text-dim">({{ c.count }})</span></summary>
+        <div class="flex flex-col pl-3">
+            <a href="{{ root_path }}/c/{{ c.slug }}" class="no-underline hover:bg-paper hover:text-ink px-1">all {{ c.name | lower }}</a>
+            {%- for s in c.subs %}
+            <a href="{{ root_path }}/c/{{ s.path }}" class="no-underline hover:bg-paper hover:text-ink px-1">{{ s.name }} <span class="text-dim">({{ s.count }})</span></a>
+            {%- endfor %}
+        </div>
+    </details>
+    {%- else %}
+    <a href="{{ root_path }}/c/{{ c.slug }}" class="no-underline hover:bg-paper hover:text-ink px-1">{{ c.name }} <span class="text-dim">({{ c.count }})</span></a>
+    {%- endif %}
+    {%- endfor %}
+</nav>

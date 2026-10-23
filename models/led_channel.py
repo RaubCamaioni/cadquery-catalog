@@ -1,5 +1,3 @@
-# led, strip, channel, diffuser, lighting
-
 import cadquery as cq
 
 

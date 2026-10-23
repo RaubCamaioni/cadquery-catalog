@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from pathlib import Path
 
 from app.models.tools import create_db_and_tables
-from app.routes import tools, auth, upload, user, admin
+from app.routes import tools, auth, upload, user, admin, metadata, browse
 from app import logger, ENVIRONMENT
 
 
@@ -26,6 +26,8 @@ app.include_router(auth.router)
 app.include_router(tools.router)
 app.include_router(user.router)
 app.include_router(admin.router)
+app.include_router(metadata.router)
+app.include_router(browse.router)
 # a cookie name and path of its own: PyTools lives on the same host under another prefix, and two
 # apps sharing the default "session" cookie at path "/" would log each other out
 app.add_middleware(

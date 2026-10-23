@@ -1,5 +1,3 @@
-# corner, protector, guard, furniture, bumper
-
 import cadquery as cq
 
 

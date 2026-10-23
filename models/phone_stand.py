@@ -1,5 +1,3 @@
-# phone, tablet, stand, desk, holder
-
 import math
 import cadquery as cq
 

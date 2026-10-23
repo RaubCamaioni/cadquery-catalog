@@ -1,5 +1,3 @@
-# wall, plate, blank, switch, cover
-
 import cadquery as cq
 
 

@@ -1,5 +1,3 @@
-# power, strip, cover, cable, box
-
 import cadquery as cq
 
 

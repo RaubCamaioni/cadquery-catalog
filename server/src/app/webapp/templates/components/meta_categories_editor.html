@@ -1,0 +1,29 @@
+{# categories editor: `categories` (list of paths) are the current ones, the first is the primary. Only a label
+   picked from the list becomes a chip; each chip holds a hidden `categories` input with the path. #}
+<div class="meta-editor" data-kind="categories" data-ordered="1" data-max="3" data-alone="misc">
+    <input type="hidden" name="categories.present" value="1">
+    <span class="text-dim">categories:</span>
+    <span class="meta-chips">
+        {%- for path in categories if path != "misc" or categories | length > 1 %}
+        <span class="meta-chip" data-value="{{ path }}"><span class="meta-chip-label">{{ category_label(path) }}</span><input
+            type="hidden" name="categories" value="{{ path }}"><button type="button"
+            class="meta-left text-dim hover:bg-paper hover:text-ink">[&lt;]</button><button type="button"
+            class="meta-right text-dim hover:bg-paper hover:text-ink">[&gt;]</button><button type="button"
+            class="meta-remove text-dim hover:bg-paper hover:text-ink">[x]</button></span>
+        {%- endfor %}
+    </span>
+    <span class="field meta-field"><input
+        class="meta-input"
+        type="text"
+        list="category-options-{{ editor_id }}"
+        autocomplete="off"
+        spellcheck="false"
+        placeholder="type to pick a category (none: Miscellaneous)"
+        aria-label="add a category"></span>
+    <datalist id="category-options-{{ editor_id }}">
+        {%- for path, label in category_leaves() %}
+        <option value="{{ label }}" data-path="{{ path }}"></option>
+        {%- endfor %}
+    </datalist>
+    <span class="meta-note text-dim"></span>
+</div>

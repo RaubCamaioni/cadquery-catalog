@@ -1,5 +1,3 @@
-# cleat, french, wall, hanger, mount
-
 import cadquery as cq
 
 

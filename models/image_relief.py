@@ -1,5 +1,3 @@
-# image, relief, depth, map, lithophane, heightmap
-
 from pathlib import Path
 from typing import Literal
 import cadquery as cq

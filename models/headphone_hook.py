@@ -1,5 +1,3 @@
-# headphone, hook, desk, hanger, clamp
-
 import cadquery as cq
 
 

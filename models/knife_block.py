@@ -1,5 +1,3 @@
-# knife, block, kitchen, slots, holder
-
 import cadquery as cq
 
 

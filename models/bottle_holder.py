@@ -1,5 +1,3 @@
-# bottle, holder, wall, ring, spray
-
 import cadquery as cq
 
 

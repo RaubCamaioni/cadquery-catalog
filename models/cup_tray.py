@@ -1,5 +1,3 @@
-# tray, cups, round, organizer, paint
-
 import cadquery as cq
 
 

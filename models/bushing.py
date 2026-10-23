@@ -1,5 +1,3 @@
-# bushing, sleeve, bearing, flange, shaft
-
 import cadquery as cq
 
 

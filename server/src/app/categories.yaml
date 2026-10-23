@@ -1,0 +1,95 @@
+# Catalog categories, two levels. A slug is a permanent id stored with every model filed under it;
+# names and descriptions can change freely. Removing a slug moves its models to Miscellaneous.
+- slug: home
+  name: Home
+  description: Things for around the house.
+  subcategories:
+    - slug: kitchen
+      name: Kitchen
+      description: Cooking, baking, food storage and serving.
+    - slug: bathroom
+      name: Bathroom
+      description: Soap dishes, toothbrush holders, drains and other bathroom helpers.
+    - slug: bedroom
+      name: Bedroom & Personal
+      description: Jewellery, glasses, watches and other personal things.
+    - slug: decor
+      name: Decor
+      description: Vases, lamp shades, frames and other things to look at.
+    - slug: storage
+      name: Storage
+      description: Boxes, containers, trays and drawer organisers.
+    - slug: wall
+      name: Wall & Hanging
+      description: Hooks, rails, cleats and brackets for hanging things on walls.
+    - slug: fixtures
+      name: Fixtures
+      description: Handles, door stops, feet, covers and other small fittings.
+- slug: office
+  name: Office & Desk
+  description: Things for the desk and the home office.
+  subcategories:
+    - slug: desk
+      name: Desk Organizers
+      description: Pen cups, trays and holders that keep a desk tidy.
+    - slug: stands
+      name: Stands & Risers
+      description: Stands for laptops, monitors, phones, tablets and controllers.
+    - slug: cables
+      name: Cable Management
+      description: Clips, combs, grommets and covers for cables.
+- slug: workshop
+  name: Workshop
+  description: Tool storage and helpers for the workshop.
+  subcategories:
+    - slug: tool-storage
+      name: Tool Storage
+      description: Racks, holders, pegboard, Gridfinity and parts bins.
+    - slug: shop-aids
+      name: Shop Aids
+      description: Small helpers for working with materials.
+    - slug: printing
+      name: 3D Printing
+      description: Calibration prints, tolerance tests and printer accessories.
+- slug: hardware
+  name: Hardware & Electronics
+  description: Mechanical parts and electronics mounts.
+  subcategories:
+    - slug: fasteners
+      name: Fasteners & Spacers
+      description: Washers, spacers, nuts, bushings and tubes.
+    - slug: mounts
+      name: Brackets & Mounts
+      description: Brackets, extrusion parts and mounts for motors and bearings.
+    - slug: mechanisms
+      name: Mechanisms
+      description: Gears, pulleys, couplers, hinges, knobs and wheels.
+    - slug: electronics
+      name: Electronics
+      description: Enclosures, board mounts, fan guards and LED channels.
+- slug: outdoor
+  name: Outdoor & Garage
+  description: The garden, the garage and the car.
+  subcategories:
+    - slug: garden
+      name: Garden
+      description: Planters, seed trays, markers and hose hangers.
+    - slug: garage
+      name: Garage & Vehicle
+      description: Bike hooks, car inserts and garage helpers.
+- slug: hobbies
+  name: Hobbies
+  description: Games, crafts and science.
+  subcategories:
+    - slug: games
+      name: Games
+      description: Dice, card boxes and other game pieces.
+    - slug: crafts
+      name: Crafts
+      description: Knitting, sewing and other craft helpers.
+    - slug: science
+      name: Science
+      description: Lab racks and other science helpers.
+- slug: misc
+  name: Miscellaneous
+  description: Models that do not fit another category yet.

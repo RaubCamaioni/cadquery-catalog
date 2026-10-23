@@ -1,5 +1,3 @@
-# remote, caddy, organizer, sofa, slots
-
 import cadquery as cq
 
 

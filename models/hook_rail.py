@@ -1,5 +1,3 @@
-# hooks, rail, coat, keys, wall
-
 import cadquery as cq
 
 

@@ -1,5 +1,3 @@
-# cup, holder, car, insert, adapter
-
 import cadquery as cq
 
 

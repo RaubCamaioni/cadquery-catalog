@@ -1,5 +1,3 @@
-# spaghetti, pasta, portion, measuring, kitchen
-
 import math
 from pathlib import Path
 import cadquery as cq

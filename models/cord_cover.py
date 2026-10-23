@@ -1,5 +1,3 @@
-# cord, cover, floor, cable, ramp
-
 import cadquery as cq
 
 

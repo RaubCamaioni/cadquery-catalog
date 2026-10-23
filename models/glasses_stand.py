@@ -1,5 +1,3 @@
-# glasses, stand, eyeglass, holder, desk
-
 import cadquery as cq
 
 

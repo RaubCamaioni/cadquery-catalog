@@ -1,5 +1,3 @@
-# washer, spacer, ring, hardware, shim
-
 import cadquery as cq
 
 

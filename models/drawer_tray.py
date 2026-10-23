@@ -1,5 +1,3 @@
-# tray, drawer, organizer, divider, storage
-
 import cadquery as cq
 
 

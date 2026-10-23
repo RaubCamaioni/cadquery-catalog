@@ -144,7 +144,7 @@ def test_run_urls_point_into_this_run_whatever_the_result_says(monkeypatch, tmp_
 
     env = tools_routes.ENVIRONMENT
     monkeypatch.setattr(tools_routes, "ENVIRONMENT", dataclasses.replace(env, sandbox=dataclasses.replace(env.sandbox, run_dir=tmp_path / "runs")))
-    tool = db.Tool(id=8, name="box", code=MODEL, arguments={}, public=True, tags=[])
+    tool = db.Tool(id=8, name="box", code=MODEL, arguments={}, public=True)
     monkeypatch.setattr(db, "get_tool_by_id", lambda session, id: tool)
     runner = HostileRunner(Path("/runs/someone-else/model.stl"))
     monkeypatch.setattr(tools_routes, "runner", runner)
@@ -159,7 +159,7 @@ def test_run_urls_point_into_this_run_whatever_the_result_says(monkeypatch, tmp_
     [("result.json", "result.json"), ("..", "data"), ("../../x.step", "x.step"), ("/etc/cron.d/x", "x"), (".hidden", "hidden")],
 )
 def test_an_uploaded_parameter_file_gets_its_own_directory(tmp_path, filename, expected):
-    tool = db.Tool(id=1, name="m", code="", arguments={"data": ("Path", None)}, tags=[])
+    tool = db.Tool(id=1, name="m", code="", arguments={"data": ("Path", None)})
     upload_file = StarUploadFile(file=io.BytesIO(b"payload"), filename=filename)
     target = tools_routes._coerce(tool, {"data": upload_file}, tmp_path)["data"]
     assert target.resolve().parent == (tmp_path / "inputs" / "data").resolve() and target.name == expected

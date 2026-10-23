@@ -1,5 +1,3 @@
-# seed, tray, garden, starter, cells
-
 import cadquery as cq
 
 

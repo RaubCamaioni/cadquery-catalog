@@ -1,5 +1,3 @@
-# bearing, holder, 608, pocket, mount
-
 import cadquery as cq
 
 

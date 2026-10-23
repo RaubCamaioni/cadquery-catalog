@@ -1,1 +1,2 @@
 recursive-include src/app/webapp *
+include src/app/categories.yaml

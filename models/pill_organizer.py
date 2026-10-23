@@ -1,5 +1,3 @@
-# pill, organizer, weekly, tray, compartments
-
 import cadquery as cq
 
 

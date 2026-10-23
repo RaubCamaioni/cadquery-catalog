@@ -1,5 +1,3 @@
-# toothbrush, holder, bathroom, cup, drain
-
 import cadquery as cq
 
 

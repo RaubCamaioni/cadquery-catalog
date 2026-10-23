@@ -1,5 +1,3 @@
-# business, card, holder, desk, display
-
 import math
 import cadquery as cq
 

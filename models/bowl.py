@@ -1,5 +1,3 @@
-# bowl, dish, revolve, kitchen, decor
-
 import cadquery as cq
 
 

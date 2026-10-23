@@ -1,5 +1,3 @@
-# scoop, measuring, kitchen, spoon, volume
-
 import math
 from fractions import Fraction
 from pathlib import Path
