@@ -62,5 +62,6 @@ def load_all(session: Session, model_ids: list[int]) -> dict[int, dict[str, Any]
 
 
 from app.metadata.tags import Tags  # noqa: E402  (the kinds import MetadataError from this module)
+from app.metadata.categories import Categories  # noqa: E402
 
-KINDS: list[MetadataKind] = [Tags()]
+KINDS: list[MetadataKind] = [Tags(), Categories()]

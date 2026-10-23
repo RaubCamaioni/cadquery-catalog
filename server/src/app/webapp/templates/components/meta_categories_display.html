@@ -1,0 +1,14 @@
+{# a model's effective categories: the primary as a breadcrumb, the others as links #}
+<div class="meta-display">
+    <span class="text-dim">category:</span>
+    {%- set primary = categories[0] %}
+    {%- set top = primary.split("/")[0] %}
+    <span><a href="{{ root_path }}/c/{{ top }}" class="no-underline hover:bg-paper hover:text-ink">{{ category_label(top) }}</a>
+    {%- if "/" in primary %} › <a href="{{ root_path }}/c/{{ primary }}" class="no-underline hover:bg-paper hover:text-ink">{{ category_label(primary).split(" › ")[1] }}</a>{% endif %}</span>
+    {%- if categories | length > 1 %}
+    <span class="text-dim">also:</span>
+    {%- for path in categories[1:] %}
+    <a href="{{ root_path }}/c/{{ path }}" class="no-underline hover:bg-paper hover:text-ink">{{ category_label(path) }}</a>
+    {%- endfor %}
+    {%- endif %}
+</div>
