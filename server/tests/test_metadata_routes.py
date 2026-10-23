@@ -157,3 +157,27 @@ def test_cleared_categories_fall_back_to_misc_page(monkeypatch, logged_in):
         session.commit()
     logged_in.post(f"/manage/model/{model_id}/metadata", data={"categories.present": "1"})
     assert "cleared_box" in TestClient(app).get("/c/misc").text
+
+
+def test_model_page_shows_categories_tags_and_the_owners_editor(monkeypatch, logged_in):
+    post(logged_in, monkeypatch, BuildingRunner(built()), "page_box", META)
+    model_id, _ = stored("page_box")
+    make_public(model_id)
+    logged_in.post(
+        f"/manage/model/{model_id}/metadata",
+        data={"categories.present": "1", "categories": ["home/kitchen", "workshop/tool-storage"]},
+    )
+    page = TestClient(app).get(f"/model/{model_id}").text
+    meta = page.split('id="model-meta"')[1].split("</div>\n            </div>")[0]
+    assert 'href="/c/home"' in meta and 'href="/c/home/kitchen"' in meta and ">Kitchen<" in meta
+    assert 'href="/c/workshop/tool-storage"' in meta and 'href="/?search=box"' in meta and "#lid" in meta
+    assert "[edit]" not in meta  # a visitor
+    owner_page = logged_in.get(f"/model/{model_id}").text
+    assert f'hx-get="/manage/model/{model_id}/metadata/edit"' in owner_page
+
+
+def test_model_without_categories_shows_miscellaneous(monkeypatch, logged_in):
+    post(logged_in, monkeypatch, BuildingRunner(built()), "misc_box")
+    model_id, _ = stored("misc_box")
+    page = logged_in.get(f"/model/{model_id}").text
+    assert 'href="/c/misc"' in page and ">Miscellaneous<" in page

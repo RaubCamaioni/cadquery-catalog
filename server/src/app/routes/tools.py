@@ -37,6 +37,7 @@ from app.utility.build_files import BuildFileError, checked_build
 from app import TEMPLATES, ALLOWED_CHARACTERS, logger, ENVIRONMENT
 from app.models import tools as db_tools
 from app.routes.auth import User, session_user
+from app.routes import metadata as metadata_routes
 import json
 import re
 from pathlib import PosixPath
@@ -266,6 +267,7 @@ async def entrypoint_page(request: Request, id: int, session: db_tools.SessionDe
             "time": time.time(),
             "votes": _votes_block(request, session, tool.id),
             "author": _author_label(session, tool),
+            "model_meta": metadata_routes.display(request, session, tool),
             "meta": tool.meta or {},
             "default_build": (
                 render.model_result(

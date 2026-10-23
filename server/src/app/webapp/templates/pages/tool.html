@@ -13,6 +13,9 @@
 
         <div class="w-11/12 mx-auto flex flex-col">
 
+            {# where the model is filed and its tags; the owner's [edit] swaps the editors in here #}
+            <div id="model-meta" class="flex flex-wrap items-center gap-x-6 gap-y-1 mb-3">{{ model_meta | safe }}</div>
+
             {# the model: viewer with its measurements and downloads, the parameters beside it #}
             <div class="panel model-layout">
                 <div class="model-column">
