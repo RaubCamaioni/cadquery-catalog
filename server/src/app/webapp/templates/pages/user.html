@@ -33,7 +33,7 @@
             <section>
                 <div class="prompt font-bold mb-1">ls -l tools/ | column -t</div>
                 {# the upload row and the tool rows reload on page load and whenever an upload sends "refresh" #}
-                <ul id="tool-rows" class="tool-table"
+                <ul id="tool-rows" class="tool-table" style="--cols: 5"
                     hx-post="{{ root_path }}/user/models"
                     hx-trigger="load, refresh"
                     hx-swap="innerHTML">
@@ -41,5 +41,10 @@
                 </ul>
             </section>
         </div>
+
+        {# [create] and [edit] load their form in here; it opens as a modal once the form has arrived. Only a swap
+           into the dialog itself opens it: the form's own request bubbles the same event up when it finishes #}
+        <dialog id="model-dialog" class="model-dialog"
+            _="on htmx:afterSettle if event.target is me call me.showModal() end"></dialog>
     </body>
 </html>

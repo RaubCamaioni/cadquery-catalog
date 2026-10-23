@@ -81,63 +81,89 @@ def store_default_build(tool: tools.Tool, build: dict) -> None:
     tool.meta = checked_meta(build["meta"])
 
 
-@router.post("/manage/model/upload", response_class=HTMLResponse)
-@router.post("/manage/model/update/{id}", response_class=HTMLResponse)
-async def tool_upload_post(
-    request: Request,
-    file: UploadFile,
-    session: SessionDep,
-    filter: FilterDep,
-    temp_dir: Tempdir,
-    id: Optional[int] = None,
-):
+def _uploader(request: Request, session) -> User:
+    """The logged-in, unbanned user from the database (the cookie only says who is logged in)."""
     session_account = session_user(request)
     if session_account is None:
         raise HTTPException(status_code=404, detail="Uploading code requires login.")
-    # bans are read from the database: the cookie only says who is logged in
     user: User = get_user(session, session_account.id)
     lift_expired_ban(session, user)
     if user.banned:
         raise HTTPException(status_code=403, detail="This account is banned.")
+    return user
 
-    name = file.filename
-    if name is None:
-        raise HTTPException(status_code=400, detail="Upload filename required.")
 
-    code = await file.read()
-
-    clean = filter.is_clean(code.decode())
-    if not clean:
-        raise HTTPException(status_code=400, detail="Blocked by profanity filter.")
-
-    db_tool: Optional[tools.Tool] = tools.get_tool(session, id)
-    if db_tool is not None and db_tool.user_id != user.id:
-        raise HTTPException(status_code=404, detail="Model does not belong to you.")
-
-    # metadata first: a bad field must not cost a sandbox build
+async def _parse_metadata(request: Request) -> dict:
+    """Every metadata field in the form, checked before anything else is done: a bad field costs no build."""
     try:
-        parsed = metadata.parse_all(metadata.form_lists(await request.form()))
+        return metadata.parse_all(metadata.form_lists(await request.form()))
     except metadata.MetadataError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-    tool = tools.create_tool(user.id, Path(name).stem, code.decode())
-    build = await validate_model(tool, temp_dir)
 
-    if db_tool is None:
-        session.add(tool)
-        session.commit()
-        session.refresh(tool)
-        store_default_build(tool, build)
-        metadata.save_all(session, tool.id, parsed)
-        session.commit()
-    else:
+async def _read_code(file: Optional[UploadFile], filter) -> Optional[tuple[str, str]]:
+    """(name, code) of the uploaded file, or None when the form's file input was left empty."""
+    if file is None or not file.filename:
+        return None
+    code = (await file.read()).decode()
+    if not filter.is_clean(code):
+        raise HTTPException(status_code=400, detail="Blocked by profanity filter.")
+    return Path(file.filename).stem, code
+
+
+@router.post("/manage/model/upload", response_class=HTMLResponse)
+async def model_create(
+    request: Request,
+    session: SessionDep,
+    filter: FilterDep,
+    temp_dir: Tempdir,
+    file: Optional[UploadFile] = None,
+):
+    """The dialog's [create]: a new model from its file and its metadata."""
+    user = _uploader(request, session)
+    parsed = await _parse_metadata(request)
+    upload = await _read_code(file, filter)
+    if upload is None:
+        raise HTTPException(status_code=400, detail="Choose the model's .py file.")
+    tool = tools.create_tool(user.id, *upload)
+    build = await validate_model(tool, temp_dir)
+    session.add(tool)
+    session.commit()
+    session.refresh(tool)
+    store_default_build(tool, build)
+    metadata.save_all(session, tool.id, parsed)
+    session.commit()
+    return HTMLResponse(status_code=200)
+
+
+@router.post("/manage/model/update/{id}", response_class=HTMLResponse)
+async def model_update(
+    request: Request,
+    id: int,
+    session: SessionDep,
+    filter: FilterDep,
+    temp_dir: Tempdir,
+    file: Optional[UploadFile] = None,
+):
+    """The dialog's [save]: the metadata, and the code too when a file was chosen. The owner may do both; an
+    admin may change another user's metadata but never their code."""
+    user = _uploader(request, session)
+    db_tool: Optional[tools.Tool] = tools.get_tool(session, id)
+    if db_tool is None or (db_tool.user_id != user.id and not user.admin):
+        raise HTTPException(status_code=404, detail="Model does not belong to you.")
+    parsed = await _parse_metadata(request)
+    upload = await _read_code(file, filter)
+    if upload is not None:
+        if db_tool.user_id != user.id:
+            raise HTTPException(status_code=404, detail="Model does not belong to you.")
+        tool = tools.create_tool(user.id, *upload)
+        build = await validate_model(tool, temp_dir)
         db_tool.name = tool.name
         db_tool.code = tool.code
         db_tool.arguments = tool.arguments
         store_default_build(db_tool, build)
-        metadata.save_all(session, db_tool.id, parsed)
-        session.commit()
-
+    metadata.save_all(session, db_tool.id, parsed)
+    session.commit()
     return HTMLResponse(status_code=200)
 
 

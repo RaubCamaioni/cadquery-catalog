@@ -1,9 +1,2 @@
-{# a model's metadata, one display partial per kind, and [edit] for its owner or an admin; swapped in place
-   by the editor's [save] and [cancel] #}
+{# a model's metadata on its page, one display partial per kind; editing happens in the profile's dialog #}
 {% for kind in kinds %}{% include kind.display_template %}{% endfor %}
-{% if can_edit %}
-<button type="button" class="text-dim hover:bg-paper hover:text-ink"
-    hx-get="{{ root_path }}/manage/model/{{ model_id }}/metadata/edit"
-    hx-target="#model-meta"
-    hx-swap="innerHTML">[edit]</button>
-{% endif %}

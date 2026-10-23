@@ -1,0 +1,12 @@
+{# description editor: plain text, line breaks kept; `description.present` tells the server the box was shown #}
+<div class="meta-editor meta-description-editor">
+    <input type="hidden" name="description.present" value="1">
+    <label class="text-dim" for="description-{{ editor_id }}">description:</label>
+    <textarea
+        id="description-{{ editor_id }}"
+        name="description"
+        rows="4"
+        maxlength="1000"
+        spellcheck="true"
+        placeholder="what the model is for, how to print it (optional)">{{ description or "" }}</textarea>
+</div>

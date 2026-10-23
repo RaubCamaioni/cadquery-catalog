@@ -7,4 +7,13 @@
     .meta-editor[data-ordered] { --meta-first: "primary: "; }
     .meta-field { flex: 1 1 12ch; min-width: 12ch; }
     .meta-display { display: flex; flex-wrap: wrap; gap: 0.25rem 0.75rem; }
+    /* the description reads first, on a line of its own, even though it is the last kind */
+    .meta-description { order: -1; flex-basis: 100%; white-space: pre-wrap; margin: 0; }
+    .meta-description-editor { flex-direction: column; align-items: stretch; }
+    .meta-description-editor textarea { width: 100%; background: transparent; color: inherit; border: 1px solid currentColor; font: inherit; padding: 0.25rem; }
+    /* the profile's create/edit dialog: a bordered terminal window over a dimmed page */
+    /* margin: auto centres it again (the base reset zeroes every margin, which pins a dialog top-left) */
+    .model-dialog { background: var(--color-ink); color: var(--color-paper); border: 1px solid var(--color-line);
+        margin: auto; padding: 1rem; width: min(90ch, calc(100vw - 2rem)); max-height: calc(100vh - 2rem); }
+    .model-dialog::backdrop { background: rgba(0, 0, 0, 0.7); }
 </style>

@@ -169,30 +169,30 @@ def tool_votes(root_path, tool_id, up, down, my_vote=None, reported=False, login
     )
 
 
-def model_meta(root_path: str, model_id: int, values: dict, can_edit: bool) -> str:
-    """A model's metadata as each kind's display partial, with [edit] for its owner or an admin."""
+def model_meta(root_path: str, model_id: int, values: dict) -> str:
+    """A model's metadata as each kind's display partial."""
     from app import metadata
 
     return TEMPLATES.get_template("components/model_meta.html").render(
-        root_path=root_path or "", model_id=model_id, kinds=metadata.KINDS, can_edit=can_edit, **values
-    )
-
-
-def model_meta_editors(root_path: str, model_id: int, values: dict) -> str:
-    """Every kind's editor filled with the model's values, with [save] and [cancel]."""
-    from app import metadata
-
-    return TEMPLATES.get_template("components/model_meta_edit.html").render(
         root_path=root_path or "", model_id=model_id, kinds=metadata.KINDS, **values
     )
 
 
-def list_item_user(root_path: str, tools: list[Tool]):
+def model_dialog(root_path: str, model_id: Optional[int], name: Optional[str], values: dict) -> str:
+    """The profile's create/edit dialog: the file and every kind's editor, filled with `values` when editing."""
+    from app import metadata
+
+    return TEMPLATES.get_template("components/model_dialog.html").render(
+        root_path=root_path or "", model_id=model_id, name=name, kinds=metadata.KINDS, **values
+    )
+
+
+def list_item_user(root_path: str, tools: list[Tool], meta: Optional[dict[int, dict]] = None):
     template: Template = TEMPLATES.get_template("components/update_tool_item.html")
     # the rows are cells of one grid (`ls -l | column -t`): the header row aligns with them
     htmlx = [
         TEMPLATES.get_template("components/update_tool_header.html").render(),
-        TEMPLATES.get_template("components/upload_tool_item.html").render(root_path=root_path),
+        TEMPLATES.get_template("components/upload_tool_item.html").render(root_path=root_path or ""),
     ]
 
     for tool in tools:
@@ -204,6 +204,7 @@ def list_item_user(root_path: str, tools: list[Tool]):
                 public="checked" if tool.public else "",
                 anonymous="checked" if tool.annonymous else "",
                 runs=format_runs(tool.usage),
+                categories=(meta or {}).get(tool.id, {}).get("categories", ["misc"]),
             )
         )
 

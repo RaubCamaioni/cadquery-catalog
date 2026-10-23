@@ -24,12 +24,15 @@ OWNER = 49600918
 
 
 def _form(entry: dict) -> dict[str, list[str]]:
-    return {
+    form = {
         "tags.present": ["1"],
         "tags": [str(t) for t in entry.get("tags", [])],
         "categories.present": ["1"],
         "categories": [str(c) for c in entry.get("categories", [])],
     }
+    if "description" in entry:  # optional: without it a description written on the site is kept
+        form.update({"description.present": ["1"], "description": [str(entry["description"])]})
+    return form
 
 
 def apply_manifest(
@@ -60,7 +63,7 @@ def apply_manifest(
     changes = {}
     for name, model_id in sorted(found.items()):
         want = {**parsed[name], "categories": effective(parsed[name]["categories"])}
-        have = current[model_id]
+        have = {key: current[model_id][key] for key in want}  # only what the manifest sets
         if have != want:
             changes[name] = model_id
             lines.append(

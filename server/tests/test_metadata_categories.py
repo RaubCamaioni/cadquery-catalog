@@ -76,4 +76,4 @@ def test_model_ids_in_counts_unfiled_models_as_misc(session_with_models):
 
 
 def test_categories_are_registered_after_tags():
-    assert [kind.key for kind in metadata.KINDS] == ["tags", "categories"]
+    assert [kind.key for kind in metadata.KINDS][:2] == ["tags", "categories"]

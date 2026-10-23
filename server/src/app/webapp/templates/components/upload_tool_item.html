@@ -1,46 +1,14 @@
-{# first row of the `ls -l tools/ | column -t` table: pick a .py file to add a model. Picking a file opens the
-   metadata row under it (tags and categories, both optional: no category means Miscellaneous); [upload] sends
-   the file and the metadata together. Columns that do not apply to a file that is not uploaded yet read --- #}
+{# first row of the `ls -l tools/ | column -t` table: [create] opens the dialog for a new model. Columns that do
+   not apply to a model that does not exist yet read --- #}
 <li class="contents">
-<form id="upload-form" class="contents"
-    hx-post="{{ root_path }}/manage/model/upload"
-    hx-encoding="multipart/form-data"
-    hx-swap="none"
-    _="on htmx:afterRequest if event.detail.successful send refresh to #tool-rows end
-       on htmx:responseError put metaError(event.detail.xhr) into #upload-error">
-
-    {# name: the chosen file name once one is picked #}
-    <span id="upload-label" class="text-dim px-1 py-0.5 min-w-0">---</span>
-
-    {# mode #}
+    <span class="text-dim px-1 py-0.5 min-w-0">---</span>
     <span class="text-dim px-1 py-0.5">---</span>
-
-    {# runs #}
     <span class="text-right text-dim px-1 py-0.5" style="min-width: 4ch">---</span>
-
-    {# actions: the picker #}
+    <span class="text-dim px-1 py-0.5">---</span>
     <span class="flex items-center gap-1 text-dim px-1 py-0.5">
-        <input
-            id="tool-upload"
-            type="file"
-            name="file"
-            accept=".py"
-            _="on change if my.files.length > 0 set #upload-label.innerText to my.files[0].name
-                   then remove @hidden from #upload-meta then put '' into #upload-error end"
-            style="display: none;" />
-        <label for="tool-upload" class="cursor-pointer px-1 hover:bg-paper hover:text-ink">[choose file]</label>
+        <button type="button" class="cursor-pointer px-1 hover:bg-paper hover:text-ink"
+            hx-get="{{ root_path }}/manage/model/create"
+            hx-target="#model-dialog"
+            hx-swap="innerHTML">[create]</button>
     </span>
-
-    {# the metadata row: spans the whole table, shown once a file is picked #}
-    <span id="upload-meta" class="flex flex-col gap-1 px-1 py-1" style="grid-column: 1 / -1" hidden>
-        {% with tags=[], categories=[], editor_id="upload" %}
-            {% include 'components/meta_tags_editor.html' %}
-            {% include 'components/meta_categories_editor.html' %}
-        {% endwith %}
-        <span class="flex items-center gap-2">
-            <button type="submit" class="hover:bg-paper hover:text-ink">[upload]</button>
-            <span id="upload-error"></span>
-        </span>
-    </span>
-</form>
 </li>
