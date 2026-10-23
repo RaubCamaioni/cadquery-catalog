@@ -11,12 +11,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   libgomp1 \
   && rm -rf /var/lib/apt/lists/*
 
+# Runtime image: no package installer. The base image's pip is removed here and the venv's after the install.
+RUN python3 -m pip uninstall -y pip
+
 RUN useradd -u 1001 -m app && mkdir -p /venvs && chown app:app /venvs
 
 USER app
 COPY --chown=app:app sandbox /tmp/sandbox
 RUN python3 -m venv /venvs/sandbox && \
   /venvs/sandbox/bin/pip install --no-cache-dir /tmp/sandbox && \
+  /venvs/sandbox/bin/pip uninstall -y pip && \
   cp -r /tmp/sandbox/stubs /venvs/stubs && \
   rm -rf /tmp/sandbox
 
@@ -24,7 +28,7 @@ RUN python3 -m venv /venvs/sandbox && \
 # and DXF, neither of which a build uses; together with the package-metadata version lookup they cost
 # about 1.5 s of every cold start. The version is pinned to a literal at build time.
 ENV PYTHONPATH=/venvs/stubs
-RUN v=$(/venvs/sandbox/bin/pip show cadquery | sed -n 's/^Version: //p') && \
+RUN v=$(/venvs/sandbox/bin/python -c 'from importlib.metadata import version; print(version("cadquery"))') && \
   f=$(/venvs/sandbox/bin/python -c 'import cadquery, os; print(os.path.join(os.path.dirname(cadquery.__file__), "__init__.py"))') && \
   /venvs/sandbox/bin/python - "$f" "$v" <<'EOF'
 import re, sys
