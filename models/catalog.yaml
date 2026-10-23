@@ -183,8 +183,11 @@ laptop_stand:
 led_channel:
   tags: [led, strip, channel, diffuser, lighting]
   categories: [hardware/electronics]
+measuring_cup:
+  tags: [cup, measuring, kitchen, baking, volume]
+  categories: [home/kitchen]
 measuring_scoop:
-  tags: [scoop, measuring, kitchen, spoon, volume, ml, oz]
+  tags: [scoop, measuring, kitchen, spoon, volume, ml, tsp, tbsp, cup]
   categories: [home/kitchen]
 monitor_riser:
   tags: [monitor, riser, desk, stand, shelf]
@@ -255,6 +258,9 @@ remote_caddy:
 ring:
   tags: [ring, washer, spacer]
   categories: [hardware/fasteners]
+rolling_pin_guides:
+  tags: [rolling-pin, dough, baking, thickness, kitchen]
+  categories: [home/kitchen]
 router_shelf:
   tags: [router, shelf, wall, mount, strap]
   categories: [home/wall]
@@ -300,6 +306,9 @@ soap_dish:
 spacer:
   tags: [spacer, standoff, washer, hardware]
   categories: [hardware/fasteners]
+spaghetti_measure:
+  tags: [spaghetti, pasta, portion, measuring, kitchen]
+  categories: [home/kitchen]
 spice_rack:
   tags: [spice, rack, kitchen, tiered, jars]
   categories: [home/kitchen]
