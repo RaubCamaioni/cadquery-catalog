@@ -2,12 +2,12 @@ from fastapi import Request, APIRouter, UploadFile, Query
 from fastapi.responses import HTMLResponse
 from fastapi.exceptions import HTTPException
 from app.models import tools
-from app.models.tools import SessionDep, User, FilterDep, get_user
+from app.models.tools import SessionDep, User, FilterDep, get_user, lift_expired_ban
 from app.routes.auth import session_user
 from pathlib import Path
 from app import TEMPLATES, ENVIRONMENT, logger
 from app.routes.tools import Tempdir
-import shutil
+from app.utility.build_files import MAX_BYTES, checked_meta, read_build_file
 from typing import Optional
 from urllib.parse import parse_qsl
 
@@ -70,10 +70,14 @@ def store_default_build(tool: tools.Tool, build: dict) -> None:
     """Keep the default STL and STEP beside the database and the thumbnail and measurements on the row."""
     target = ENVIRONMENT.MODELS_DIR / str(tool.id)
     target.mkdir(parents=True, exist_ok=True)
+    # read again through the same checks: never follow a link or open a FIFO the model left behind
     for key, name in (("stl", "model.stl"), ("step", "model.step")):
-        shutil.copyfile(build[key], target / name)
-    tool.preview_svg = Path(build["preview"]).read_text(encoding="utf-8")
-    tool.meta = build["meta"]
+        (target / name).write_bytes(read_build_file(build[key], MAX_BYTES[key]))
+    try:
+        tool.preview_svg = read_build_file(build["preview"], MAX_BYTES["preview"]).decode("utf-8")
+    except UnicodeDecodeError:
+        raise HTTPException(status_code=400, detail="Model Build Failed: preview.svg is not text")
+    tool.meta = checked_meta(build["meta"])
 
 
 @router.post("/manage/model/upload", response_class=HTMLResponse)
@@ -86,9 +90,14 @@ async def tool_upload_post(
     temp_dir: Tempdir,
     id: Optional[int] = None,
 ):
-    if "user" not in request.session:
+    session_account = session_user(request)
+    if session_account is None:
         raise HTTPException(status_code=404, detail="Uploading code requires login.")
-    user: User = User.model_validate_json(request.session["user"])
+    # bans are read from the database: the cookie only says who is logged in
+    user: User = get_user(session, session_account.id)
+    lift_expired_ban(session, user)
+    if user.banned:
+        raise HTTPException(status_code=403, detail="This account is banned.")
 
     name = file.filename
     if name is None:

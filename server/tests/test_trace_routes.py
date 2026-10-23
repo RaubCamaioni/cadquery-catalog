@@ -15,7 +15,7 @@ def test_trace_stream_emits_lines_then_end(monkeypatch, public_tool):
         async def run(self, tool, run_dir, on_line=None):
             on_line(1)
             on_line(2)
-            return RunResult(Outcome.OK, results=BUILD)
+            return await super().run(tool, run_dir)
 
     c = client(monkeypatch, Runner())
     assert c.post("/model/8", headers={"X-Trace-Token": TOKEN}).status_code == 200
