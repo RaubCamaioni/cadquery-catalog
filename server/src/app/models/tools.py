@@ -1,7 +1,6 @@
 from fastapi import Depends, HTTPException
 from typing import Annotated, Optional, Any
 from profanityfilter import ProfanityFilter
-import pyparsing as pp
 from sqlmodel import (
     Field,
     Session,
@@ -15,7 +14,8 @@ from sqlmodel import (
 import hashlib
 from datetime import datetime, timedelta, timezone
 from dataclasses import dataclass
-from sqlalchemy import func, inspect, text
+from sqlalchemy import func, inspect, or_, text
+import json
 import logging
 import ast
 import black
@@ -54,7 +54,6 @@ class Tool(SQLModel, table=True):
     name: str
     code: str
     arguments: dict[str, tuple[str, str]] = Field(default={}, sa_column=Column(JSON))
-    tags: list[str] = Field(default={}, sa_column=Column(JSON))
     up_votes: list["UpVote"] = Relationship(back_populates="tool")
     down_votes: list["DownVote"] = Relationship(back_populates="tool")
     reports: list["Report"] = Relationship(back_populates="tool")
@@ -104,33 +103,32 @@ def get_user(session: Session, id: int) -> User:
         return new_user
 
 
-def get_tools_by_index(
+def search_models(
     session: Session,
+    words: list[str],
     start: int,
     end: int,
+    category: Optional[str] = None,
     only_public: bool = True,
 ) -> list[tuple[int, str]]:
-    with session:
-        conditions = []
-        if only_public:
-            conditions = [Tool.public == True]
-        statement = select(Tool.id, Tool.name).where(*conditions).offset(start).limit(end - start)
-        return session.exec(statement).all()
+    """(id, name) of the models where every word matches the name (substring) or a tag (exact; the last word,
+    still being typed, by prefix), optionally within a category slug or leaf path, in id order."""
+    from app import categories
+    from app.metadata.categories import model_ids_in
+    from app.metadata.tags import ModelTag, escape_like
 
-
-def get_tools_by_tags(
-    session: Session,
-    tags: list[str],
-    start: int,
-    end: int,
-    only_public: bool = True,
-) -> list[Tool]:
-    with session:
-        conditions = [Tool.tags.ilike(f"%{tag}%") for tag in tags]
-        if only_public:
-            conditions.append(Tool.public == True)
-        statement = select(Tool.id, Tool.name).where(*conditions).offset(start).limit(end - start)
-        return session.exec(statement).all()
+    conditions = [Tool.public == True] if only_public else []  # noqa: E712
+    for i, word in enumerate(w.lower() for w in words):
+        pattern = escape_like(word)
+        last = i == len(words) - 1
+        tag = ModelTag.tag.like(pattern + "%", escape="\\") if last else ModelTag.tag == word
+        by_tag = Tool.id.in_(select(ModelTag.model_id).where(tag))
+        conditions.append(or_(Tool.name.ilike(f"%{pattern}%", escape="\\"), by_tag))
+    if category is not None:
+        paths = categories.paths_under(category) or ([category] if categories.is_leaf(category) else [])
+        conditions.append(Tool.id.in_(model_ids_in(paths)))
+    statement = select(Tool.id, Tool.name).where(*conditions).order_by(Tool.id).offset(start).limit(end - start)
+    return session.exec(statement).all()
 
 
 @dataclass
@@ -307,6 +305,37 @@ def migrate(engine_) -> None:
                     conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {column} {definition}"))
 
 
+def copy_json_tags(engine_) -> int:
+    """Tags used to live in a JSON column on the tool row, read from line 1 with the model name appended. Copy
+    them into ModelTag once (while ModelTag is empty); the old column is left in place, unused."""
+    from app.metadata import MetadataError
+    from app.metadata.tags import ModelTag, normalise
+
+    if "tags" not in {c["name"] for c in inspect(engine_).get_columns("tool")}:
+        return 0
+    copied = 0
+    with Session(engine_) as session:
+        if session.exec(select(ModelTag)).first() is not None:
+            return 0
+        for model_id, name, raw in session.exec(text("SELECT id, name, tags FROM tool")).all():
+            tags: list[str] = []
+            for value in json.loads(raw) if raw else []:
+                try:
+                    tag = normalise(str(value))
+                except MetadataError:
+                    logger.info("model %s: old tag %r skipped", model_id, value)
+                    continue
+                if tag != name.lower() and tag not in tags:
+                    tags.append(tag)
+            for position, tag in enumerate(tags):
+                session.add(ModelTag(model_id=model_id, tag=tag, position=position))
+            copied += len(tags)
+        session.commit()
+    if copied:
+        logger.info("copied %s tag(s) from the old JSON column", copied)
+    return copied
+
+
 def format_stored_tools(engine_) -> int:
     """Bring every stored tool up to the upload standard (black at the page's line length,
     one trailing newline); safe to run on every start. Returns how many tools changed.
@@ -335,6 +364,7 @@ def create_db_and_tables():
 
     SQLModel.metadata.create_all(engine)
     migrate(engine)
+    copy_json_tags(engine)
     format_stored_tools(engine)
 
 
@@ -372,17 +402,6 @@ class FunctionVisitor(ast.NodeVisitor):
 
     def __iter__(self):
         return iter(self.nodes)
-
-
-def get_tags(tool_source: str) -> list[str]:
-    word = pp.Word(pp.alphanums)
-    tag = word + pp.Optional(pp.Suppress(pp.Literal(",")))
-    comment_line = pp.Suppress(pp.Literal("#")) + pp.OneOrMore(tag)
-    try:
-        result = comment_line.parseString(tool_source)
-        return list(result)
-    except pp.ParseException:
-        return []
 
 
 def get_arguments(tool_name: str, tool_source: str) -> dict[str, str]:
@@ -454,8 +473,6 @@ def create_tool(user_id: int, tool_name: str, tool_source: str) -> Tool:
     tool_source = format_source(tool_source)
     # black wraps code but leaves long strings and comments alone, so those still need the author
     check_line_lengths(tool_source)
-    tags = get_tags(tool_source.split("\n")[0])
-    tags.append(tool_name)
     arguments = get_arguments(tool_name, tool_source)
 
     return Tool(
@@ -463,5 +480,4 @@ def create_tool(user_id: int, tool_name: str, tool_source: str) -> Tool:
         code=tool_source,
         arguments=arguments,
         user_id=user_id,
-        tags=tags,
     )

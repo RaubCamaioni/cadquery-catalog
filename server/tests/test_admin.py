@@ -41,9 +41,9 @@ def test_startup_pass_formats_stored_tools_once():
     engine = engine_with(
         users=[db.User(id=1, alias="rob")],
         tools=[
-            db.Tool(id=1, name="a", code="# tag\ndef a(x:int=1)->int:\n  return x", user_id=1, tags=[]),
-            db.Tool(id=2, name="b", code="# tag\n\n\ndef b(x: int = 1) -> int:\n    return x\n", user_id=1, tags=[]),
-            db.Tool(id=3, name="c", code="def (broken", user_id=1, tags=[]),
+            db.Tool(id=1, name="a", code="# tag\ndef a(x:int=1)->int:\n  return x", user_id=1),
+            db.Tool(id=2, name="b", code="# tag\n\n\ndef b(x: int = 1) -> int:\n    return x\n", user_id=1),
+            db.Tool(id=3, name="c", code="def (broken", user_id=1),
         ],
     )
     assert db.format_stored_tools(engine) == 1
@@ -59,9 +59,9 @@ def test_users_with_tools_lists_every_account_with_vote_and_report_totals():
     engine = engine_with(
         users=[db.User(id=1, alias="rob", admin=True), db.User(id=2, alias="eve")],
         tools=[
-            db.Tool(id=10, name="a", code="", user_id=1, public=True, tags=[]),
-            db.Tool(id=11, name="b", code="", user_id=2, public=False, tags=[]),
-            db.Tool(id=12, name="c", code="", user_id=2, public=True, tags=[]),
+            db.Tool(id=10, name="a", code="", user_id=1, public=True),
+            db.Tool(id=11, name="b", code="", user_id=2, public=False),
+            db.Tool(id=12, name="c", code="", user_id=2, public=True),
         ],
     )
     with Session(engine) as session:
@@ -82,7 +82,7 @@ def test_ban_for_a_period_unpublishes_tools_and_unban_keeps_them_private():
 
     engine = engine_with(
         users=[db.User(id=2, alias="eve")],
-        tools=[db.Tool(name="c", code="", user_id=2, public=True, tags=[])],
+        tools=[db.Tool(name="c", code="", user_id=2, public=True)],
     )
     with Session(engine) as session:
         db.set_banned(session, 2, months=6)
@@ -127,8 +127,8 @@ def test_admin_page_lists_accounts_and_their_tools(monkeypatch):
 
     rob = db.User(id=1, alias="rob", admin=True)
     eve = db.User(id=2, alias="eve", banned=True, banned_until=datetime(2026, 11, 20, 12, 0, tzinfo=timezone.utc))
-    a = db.Tool(id=5, name="a", code="", user_id=1, public=True, tags=[])
-    b = db.Tool(id=6, name="b", code="", user_id=2, public=False, tags=[])
+    a = db.Tool(id=5, name="a", code="", user_id=1, public=True)
+    b = db.Tool(id=6, name="b", code="", user_id=2, public=False)
     monkeypatch.setattr(
         db,
         "get_users_with_tools",
@@ -169,7 +169,7 @@ def test_admin_can_delete_another_users_tool(monkeypatch):
     from app.routes import upload as upload_routes
 
     deleted = []
-    tool = db.Tool(id=6, name="b", code="", user_id=2, public=True, tags=[])
+    tool = db.Tool(id=6, name="b", code="", user_id=2, public=True)
     monkeypatch.setattr(upload_routes.tools, "get_tool", lambda session, id: tool)
     monkeypatch.setattr(upload_routes.tools, "del_tool", lambda session, t: deleted.append(t.id))
     monkeypatch.setattr(upload_routes, "session_user", lambda request: db.User(id=1, alias="rob", admin=True))
@@ -184,7 +184,7 @@ def test_admin_opens_a_private_tool_page(monkeypatch, tmp_path):
     monkeypatch.setattr(
         tools_routes.db_tools,
         "get_tool_by_id",
-        lambda session, id: db.Tool(id=9, name="secret", code="def secret(): return 1", arguments={}, public=False, user_id=2, tags=[]),
+        lambda session, id: db.Tool(id=9, name="secret", code="def secret(): return 1", arguments={}, public=False, user_id=2),
     )
     env = tools_routes.ENVIRONMENT
     monkeypatch.setattr(tools_routes, "ENVIRONMENT", dataclasses.replace(env, sandbox=dataclasses.replace(env.sandbox, run_dir=tmp_path)))
@@ -230,7 +230,7 @@ def test_admin_page_folds_each_accounts_tools_behind_its_row(monkeypatch):
 
     monkeypatch.setattr(admin_routes, "session_user", lambda request: db.User(id=1, alias="rob", admin=True))
     eve = db.User(id=2, alias="eve")
-    b = db.Tool(id=6, name="b", code="", user_id=2, public=True, tags=[])
+    b = db.Tool(id=6, name="b", code="", user_id=2, public=True)
     monkeypatch.setattr(db, "get_users_with_tools", lambda session: [db.AccountSummary(eve, [db.ToolSummary(b, 0, 0, 0)], 0, 0, 0)])
     page = client(monkeypatch, StubRunner()).get("/admin").text
     # the tool rows are a hidden group the account row toggles

@@ -70,7 +70,7 @@ def public_tool(monkeypatch, tmp_path):
         db,
         "get_tool_by_id",
         lambda session, id: db.Tool(
-            id=8, name="byte_converter", code="def byte_converter(): return 1", arguments={}, public=True, tags=[]
+            id=8, name="byte_converter", code="def byte_converter(): return 1", arguments={}, public=True
         ),
     )
     # SandboxConfig is frozen: swap the whole ENVIRONMENT the routes module sees
@@ -89,7 +89,7 @@ def client(monkeypatch, runner):
 
 def test_code_view_shows_the_trailing_newline_as_an_empty_last_line(monkeypatch, public_tool):
     code = "# tag\n\n\ndef byte_converter() -> int:\n    return 1\n"
-    monkeypatch.setattr(db, "get_tool_by_id", lambda session, id: db.Tool(id=8, name="t", code=code, public=True, tags=[]))
+    monkeypatch.setattr(db, "get_tool_by_id", lambda session, id: db.Tool(id=8, name="t", code=code, public=True))
     page = client(monkeypatch, StubRunner()).get("/model/8").text
     # the view's text ends in two newlines, so Prism numbers an empty line 6; the status bar counts 5 like vim
     assert "    return 1\n\n</code>" in page and ">5L<" in page
@@ -195,7 +195,7 @@ def test_tool_page_names_the_author_as_alias_and_id(monkeypatch, tmp_path):
     monkeypatch.setattr(
         db,
         "get_tool_by_id",
-        lambda session, id: db.Tool(id=8, name="t", code="", arguments={}, public=True, annonymous=False, user_id=49600918, tags=[]),
+        lambda session, id: db.Tool(id=8, name="t", code="", arguments={}, public=True, annonymous=False, user_id=49600918),
     )
     monkeypatch.setattr(tools_routes.db_tools, "get_user_by_id", lambda session, id: db.User(id=49600918, alias="rob"))
     env = tools_routes.ENVIRONMENT
@@ -212,7 +212,7 @@ def test_anonymous_tool_hides_the_alias_and_the_id(monkeypatch, tmp_path):
     monkeypatch.setattr(
         db,
         "get_tool_by_id",
-        lambda session, id: db.Tool(id=8, name="t", code="", arguments={}, public=True, annonymous=True, user_id=49600918, tags=[]),
+        lambda session, id: db.Tool(id=8, name="t", code="", arguments={}, public=True, annonymous=True, user_id=49600918),
     )
     monkeypatch.setattr(tools_routes.db_tools, "get_user_by_id", lambda session, id: db.User(id=49600918, alias="rob"))
     env = tools_routes.ENVIRONMENT

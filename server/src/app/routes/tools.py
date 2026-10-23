@@ -175,13 +175,9 @@ async def get_tools(
     body = await request.body()
     search_string = unquote(body.decode())
     query_params = parse_qs(search_string)
-    # every typed word must match the tool's name or one of its first-line hashtags
+    # every typed word must match the model's name or one of its tags
     tags = query_params.get("search", [""])[0].split()
-
-    if tags:
-        tools = db_tools.get_tools_by_tags(session, tags, start, end)
-    else:
-        tools = db_tools.get_tools_by_index(session, start, end)
+    tools = db_tools.search_models(session, tags, start, end)
 
     if len(tools) < (end - start):
         end = None

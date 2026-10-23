@@ -50,7 +50,7 @@ def test_upload_ends_with_exactly_one_newline():
 
 def test_windows_line_endings_are_normalised():
     tool = db.create_tool(1, "demo", source("x = 1").replace("\n", "\r\n"))
-    assert "\r" not in tool.code and tool.tags == ["tag", "demo"]
+    assert "\r" not in tool.code
 
 
 @pytest.mark.parametrize("name", ["storage_box", "spacer"])

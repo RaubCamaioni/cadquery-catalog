@@ -10,7 +10,7 @@ from tests.test_tool_routes import StubRunner, client, public_tool  # noqa: F401
 def votes_engine():
     return engine_with(
         users=[db.User(id=1, alias="rob"), db.User(id=2, alias="eve")],
-        tools=[db.Tool(id=8, name="byte_converter", code="", user_id=1, public=True, tags=[])],
+        tools=[db.Tool(id=8, name="byte_converter", code="", user_id=1, public=True)],
     )
 
 
