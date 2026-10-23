@@ -47,7 +47,7 @@ freely.
   description: Models that do not fit another category yet.
 ```
 
-The initial tree (6 categories, 23 subcategories, plus Miscellaneous):
+The initial tree (6 categories, 22 subcategories, plus Miscellaneous):
 
 | Category | Subcategories |
 |---|---|

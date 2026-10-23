@@ -55,14 +55,14 @@
     `paths_under(slug: str) -> list[str]`, `leaves() -> list[tuple[str, str]]` (path, label) in file order,
     `find(path: str) -> Optional[Category]` (top-level or leaf), `MISC = "misc"`
 
-- [ ] **Step 1: Write `categories.yaml`** with the spec's tree exactly (6 categories, 23 subcategories, then `misc`), slugs and names from the spec table, one-line descriptions (the spec's for `home`, `kitchen`, `misc`; write the rest in the same voice).
+- [ ] **Step 1: Write `categories.yaml`** with the spec's tree exactly (6 categories, 22 subcategories, then `misc`), slugs and names from the spec table, one-line descriptions (the spec's for `home`, `kitchen`, `misc`; write the rest in the same voice).
 
 - [ ] **Step 2: Write the failing tests**
 
 ```python
 def test_shipped_tree_loads():
     assert [c.slug for c in categories.TREE] == ["home", "office", "workshop", "hardware", "outdoor", "hobbies", "misc"]
-    assert sum(len(c.subcategories) for c in categories.TREE) == 23
+    assert sum(len(c.subcategories) for c in categories.TREE) == 22
     assert categories.label("home/kitchen") == "Home › Kitchen" and categories.label("misc") == "Miscellaneous"
     assert categories.is_leaf("home/kitchen") and categories.is_leaf("misc") and not categories.is_leaf("home")
     assert "workshop/tool-storage" in categories.paths_under("workshop") and categories.paths_under("misc") == ["misc"]
