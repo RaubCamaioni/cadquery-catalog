@@ -20,6 +20,7 @@ line-length = 120
 
 [project.scripts]
 catalog = "app.runner:runner"
+catalog-admin = "app.admin_cli:main"
 
 [project.optional-dependencies]
 dev = ["pytest>=8", "pytest-asyncio>=0.24"]

@@ -1,5 +1,3 @@
-# cable, clip, cord, organizer, desk
-
 import cadquery as cq
 
 

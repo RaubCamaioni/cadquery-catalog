@@ -1,5 +1,3 @@
-# trivet, kitchen, hexagon, honeycomb, hot
-
 import math
 import cadquery as cq
 

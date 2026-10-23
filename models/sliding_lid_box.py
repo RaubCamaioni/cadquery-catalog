@@ -1,5 +1,3 @@
-# box, sliding, lid, storage, groove
-
 import cadquery as cq
 
 

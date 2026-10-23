@@ -1,5 +1,3 @@
-# plant, marker, label, garden, stake
-
 import cadquery as cq
 
 

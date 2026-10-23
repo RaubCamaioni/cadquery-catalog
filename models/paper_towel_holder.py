@@ -1,5 +1,3 @@
-# paper, towel, holder, kitchen, roll
-
 import cadquery as cq
 
 

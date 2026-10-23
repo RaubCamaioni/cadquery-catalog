@@ -1,5 +1,3 @@
-# pot, lid, rack, kitchen, cabinet
-
 import cadquery as cq
 
 

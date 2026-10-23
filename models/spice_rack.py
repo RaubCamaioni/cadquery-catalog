@@ -1,5 +1,3 @@
-# spice, rack, kitchen, tiered, jars
-
 import cadquery as cq
 
 

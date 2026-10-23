@@ -1,5 +1,3 @@
-# container, box, lid, storage, cadquery
-
 from cadquery.occ_impl import shapes as occ_shapes
 import cadquery as cq
 import numpy as np

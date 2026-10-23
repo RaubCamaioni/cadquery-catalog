@@ -1,5 +1,3 @@
-# hex, key, allen, holder, workshop
-
 import cadquery as cq
 
 

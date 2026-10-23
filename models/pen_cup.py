@@ -1,5 +1,3 @@
-# pen, cup, holder, desk, pencil
-
 from typing import Literal
 import cadquery as cq
 

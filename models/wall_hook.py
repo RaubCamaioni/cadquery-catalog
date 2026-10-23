@@ -1,5 +1,3 @@
-# hook, wall, hanger, coat, screw
-
 import cadquery as cq
 
 

@@ -1,5 +1,3 @@
-# nut, trap, block, captive, fastener
-
 import cadquery as cq
 
 NUTS = {

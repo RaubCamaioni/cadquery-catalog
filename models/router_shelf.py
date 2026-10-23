@@ -1,5 +1,3 @@
-# router, shelf, wall, mount, strap
-
 import cadquery as cq
 
 

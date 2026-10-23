@@ -1,5 +1,3 @@
-# soap, dish, bathroom, drain, tray
-
 import cadquery as cq
 
 

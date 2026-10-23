@@ -1,5 +1,3 @@
-# yarn, bowl, knitting, crochet, craft
-
 import cadquery as cq
 
 

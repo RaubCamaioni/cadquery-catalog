@@ -1,5 +1,3 @@
-# tube, squeezer, toothpaste, key, roller
-
 import cadquery as cq
 
 

@@ -1,5 +1,3 @@
-# grommet, desk, cable, hole, cover
-
 import cadquery as cq
 
 

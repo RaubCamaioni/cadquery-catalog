@@ -1,5 +1,3 @@
-# t, nut, extrusion, 2020, slot
-
 import cadquery as cq
 
 

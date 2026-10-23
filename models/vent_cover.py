@@ -1,5 +1,3 @@
-# vent, cover, louver, grille, duct
-
 import cadquery as cq
 
 

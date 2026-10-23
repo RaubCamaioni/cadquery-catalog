@@ -1,5 +1,3 @@
-# funnel, kitchen, workshop, pour, cone
-
 import cadquery as cq
 
 

@@ -1,5 +1,3 @@
-# drawer, divider, organizer, strip, kitchen
-
 import cadquery as cq
 
 

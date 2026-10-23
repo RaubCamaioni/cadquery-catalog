@@ -1,5 +1,3 @@
-# foot, bumper, pad, furniture, electronics
-
 from typing import Literal
 import cadquery as cq
 

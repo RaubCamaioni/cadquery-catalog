@@ -1,5 +1,3 @@
-# hinge, print, in, place, knuckle
-
 import cadquery as cq
 
 

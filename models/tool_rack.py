@@ -1,5 +1,3 @@
-# tool, rack, pliers, wrench, workshop
-
 import cadquery as cq
 
 

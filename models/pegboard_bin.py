@@ -1,5 +1,3 @@
-# pegboard, bin, cup, workshop, hook
-
 import cadquery as cq
 
 

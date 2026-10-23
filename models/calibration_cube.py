@@ -1,5 +1,3 @@
-# calibration, cube, test, printer, tolerance
-
 import cadquery as cq
 
 

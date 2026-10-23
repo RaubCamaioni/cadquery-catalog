@@ -1,5 +1,3 @@
-# ring, washer, spacer, cadquery
-
 import cadquery as cq
 
 

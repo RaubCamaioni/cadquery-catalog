@@ -1,5 +1,3 @@
-# box, container, storage, organizer
-
 import cadquery as cq
 
 

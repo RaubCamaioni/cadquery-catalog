@@ -1,5 +1,3 @@
-# cutting, board, rack, kitchen, stand
-
 import cadquery as cq
 
 

@@ -1,5 +1,3 @@
-# ice, cube, tray, kitchen, silicone
-
 import cadquery as cq
 
 

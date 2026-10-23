@@ -1,5 +1,3 @@
-# shelf, bracket, wall, support, triangle
-
 import cadquery as cq
 
 

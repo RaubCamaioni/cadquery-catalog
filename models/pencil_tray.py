@@ -1,5 +1,3 @@
-# pencil, tray, desk, pen, groove
-
 import cadquery as cq
 
 

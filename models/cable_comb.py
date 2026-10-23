@@ -1,5 +1,3 @@
-# cable, comb, sleeving, pc, management
-
 import cadquery as cq
 
 

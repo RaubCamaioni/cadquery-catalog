@@ -1,5 +1,3 @@
-# usb, stick, holder, flash, organizer
-
 import cadquery as cq
 
 

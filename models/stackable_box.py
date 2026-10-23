@@ -1,5 +1,3 @@
-# box, stackable, crate, storage, lip
-
 import cadquery as cq
 
 

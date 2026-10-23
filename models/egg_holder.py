@@ -1,5 +1,3 @@
-# egg, holder, kitchen, tray, fridge
-
 import cadquery as cq
 
 

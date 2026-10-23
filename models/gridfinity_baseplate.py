@@ -1,5 +1,3 @@
-# gridfinity, baseplate, storage, modular, workshop
-
 import cadquery as cq
 
 GRID = 42.0

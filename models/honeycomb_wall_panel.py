@@ -1,5 +1,3 @@
-# honeycomb, wall, panel, hsw, workshop
-
 import math
 import cadquery as cq
 

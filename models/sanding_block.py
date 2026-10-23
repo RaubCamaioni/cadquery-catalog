@@ -1,5 +1,3 @@
-# sanding, block, workshop, grip, paper
-
 import cadquery as cq
 
 

@@ -1,5 +1,3 @@
-# gridfinity, bin, storage, modular, workshop
-
 import cadquery as cq
 
 GRID = 42.0  # mm per grid unit

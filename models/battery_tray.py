@@ -1,5 +1,3 @@
-# battery, tray, holder, AA, AAA, organizer
-
 from typing import Literal
 import cadquery as cq
 

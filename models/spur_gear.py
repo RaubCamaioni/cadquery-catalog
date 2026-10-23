@@ -1,5 +1,3 @@
-# gear, spur, involute, module, teeth, mechanism
-
 import math
 import cadquery as cq
 

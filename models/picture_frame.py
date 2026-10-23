@@ -1,5 +1,3 @@
-# frame, picture, photo, display, wall
-
 import cadquery as cq
 
 

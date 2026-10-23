@@ -1,5 +1,3 @@
-# tea, light, candle, holder, decor
-
 import cadquery as cq
 
 

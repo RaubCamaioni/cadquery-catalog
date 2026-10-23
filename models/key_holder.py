@@ -1,5 +1,3 @@
-# keys, holder, wall, hooks, entryway
-
 import cadquery as cq
 
 

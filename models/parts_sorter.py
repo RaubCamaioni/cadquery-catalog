@@ -1,5 +1,3 @@
-# sorter, parts, tray, tilted, workshop
-
 import cadquery as cq
 
 

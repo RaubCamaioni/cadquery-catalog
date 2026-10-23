@@ -1,5 +1,3 @@
-# broom, holder, wall, clip, spring
-
 import cadquery as cq
 
 

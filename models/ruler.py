@@ -1,5 +1,3 @@
-# ruler, measure, mm, scale, desk
-
 import cadquery as cq
 
 

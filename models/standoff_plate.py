@@ -1,5 +1,3 @@
-# pcb, standoff, mount, plate, electronics
-
 import cadquery as cq
 
 

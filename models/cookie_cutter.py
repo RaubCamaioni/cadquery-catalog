@@ -1,5 +1,3 @@
-# cookie, cutter, kitchen, baking, shape
-
 import math
 from typing import Literal
 import cadquery as cq

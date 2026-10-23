@@ -21,8 +21,8 @@ def category_counts(session: Session) -> dict[str, int]:
     """Public models per leaf path and per top-level slug; a model counts once in each place it is filed."""
 
     def count(paths: list[str]) -> int:
-        statement = select(func.count(Tool.id)).where(Tool.public == True, Tool.id.in_(model_ids_in(paths)))  # noqa: E712
-        return session.exec(statement).one()
+        public = Tool.public == True  # noqa: E712
+        return session.exec(select(func.count(Tool.id)).where(public, Tool.id.in_(model_ids_in(paths)))).one()
 
     counts = {}
     for category in categories.TREE:

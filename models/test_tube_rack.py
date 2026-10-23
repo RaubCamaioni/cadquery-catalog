@@ -1,5 +1,3 @@
-# test, tube, rack, lab, holder
-
 import cadquery as cq
 
 

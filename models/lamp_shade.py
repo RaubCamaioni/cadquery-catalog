@@ -1,5 +1,3 @@
-# lamp, shade, light, decor, polygon
-
 import cadquery as cq
 
 

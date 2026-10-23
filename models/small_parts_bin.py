@@ -1,5 +1,3 @@
-# bin, parts, storage, stackable, workshop
-
 import cadquery as cq
 
 

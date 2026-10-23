@@ -1,5 +1,3 @@
-# door, stop, wedge, shim, household
-
 import cadquery as cq
 
 

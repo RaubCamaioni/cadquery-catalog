@@ -1,5 +1,3 @@
-# card, deck, box, playing, tuck
-
 import cadquery as cq
 
 

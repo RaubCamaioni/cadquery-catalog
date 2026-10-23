@@ -1,5 +1,3 @@
-# cable, spool, winder, cord, organizer
-
 import cadquery as cq
 
 

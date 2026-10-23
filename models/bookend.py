@@ -1,5 +1,3 @@
-# bookend, shelf, books, desk, weight
-
 import cadquery as cq
 
 
