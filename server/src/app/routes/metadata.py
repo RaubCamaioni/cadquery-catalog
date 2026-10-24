@@ -68,5 +68,7 @@ async def edit_dialog(request: Request, id: int, session: SessionDep):
 
 @router.get("/tags/suggest")
 async def tag_suggestions(session: SessionDep, q: str = ""):
-    """The tag editor's dropdown: tags in use on public models that start with `q`, most used first."""
-    return [{"tag": tag, "count": count} for tag, count in suggest(session, q)]
+    """The tag editor's dropdown: tags in use on public models that start with `q`, most used first; every
+    tag in use when nothing is typed, so the list can be browsed."""
+    limit = 50 if q.strip() else None
+    return [{"tag": tag, "count": count} for tag, count in suggest(session, q, limit)]

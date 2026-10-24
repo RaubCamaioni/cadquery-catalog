@@ -43,8 +43,8 @@ def escape_like(text: str) -> str:
     return text.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
 
 
-def suggest(session: Session, prefix: str, limit: int = 10) -> list[tuple[str, int]]:
-    """Tags on public models starting with `prefix`, most used first."""
+def suggest(session: Session, prefix: str, limit: Optional[int] = 10) -> list[tuple[str, int]]:
+    """Tags on public models starting with `prefix`, most used first; `limit=None` for all of them."""
     from app.models.tools import Tool
 
     count = func.count(ModelTag.model_id)

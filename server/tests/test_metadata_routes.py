@@ -269,3 +269,16 @@ def test_suggest_route(monkeypatch, logged_in):
         session.commit()
     r = TestClient(app).get("/tags/suggest", params={"q": "zeb"})
     assert r.status_code == 200 and r.json() == [{"tag": "zebra-stripe", "count": 1}]
+
+
+def test_suggest_route_lists_every_tag_when_nothing_is_typed(monkeypatch, logged_in):
+    many = [f"browse-{i:02d}" for i in range(10)]
+    with db.Session(db.engine) as session:
+        for half in (many[:5], many[5:] + ["zebra-extra"]):
+            model = db.Tool(name="browsed", code="", user_id=1, public=True)
+            session.add(model)
+            session.commit()
+            Tags().save(session, model.id, half)
+            session.commit()
+    listed = {t["tag"] for t in TestClient(app).get("/tags/suggest").json()}
+    assert set(many) | {"zebra-extra"} <= listed  # more than the 10 a typed prefix used to get
