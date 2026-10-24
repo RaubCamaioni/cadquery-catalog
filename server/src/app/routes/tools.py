@@ -6,6 +6,7 @@ from fastapi.responses import (
     FileResponse,
 )
 from urllib.parse import (
+    quote,
     unquote,
     parse_qs,
     quote_plus,
@@ -14,57 +15,50 @@ from urllib.parse import (
     urljoin,
     urlencode,
 )
-from fastapi import FastAPI, HTTPException, Request, APIRouter, Depends, Query
+from fastapi import FastAPI, HTTPException, Request, APIRouter, Query
 from starlette.datastructures import UploadFile as StarUploadFile
-from typing import Literal, get_origin, Annotated, Optional
-from contextlib import asynccontextmanager, suppress
+from typing import Literal, Optional
+from contextlib import asynccontextmanager
 from zipfile import ZipFile
-from pathlib import Path, PurePosixPath
 from io import BytesIO
 import asyncio
 import hashlib
-import secrets
-import shutil
 import time
-import stat
-import os
 
-from app.utility import render, serializer, security
-from app.utility.podman_runner import PodmanRunner, Outcome, SandboxBusy, SandboxUnavailable
-from app.utility.trace import TraceRegistry
-from app.utility.annotations import AnnotationError, resolve_annotation
+from sandboxcore.host import (
+    InputFile,
+    Job,
+    JobError,
+    Outcome,
+    OutputFile,
+    Sandbox,
+    SandboxBusy,
+    SandboxUnavailable,
+    Signature,
+    SignatureError,
+    Source,
+    SourceError,
+)
+from app.utility.trace_stream import TraceRegistry
+from app.utility import render
 from app.utility.build_files import BuildFileError, checked_build
-from app import TEMPLATES, ALLOWED_CHARACTERS, logger, ENVIRONMENT
+from app import TEMPLATES, logger, ENVIRONMENT
 from app.models import tools as db_tools
 from app.routes.auth import User, session_user
 from app.routes import metadata as metadata_routes
 import json
 import re
-from pathlib import PosixPath
-
-
-class PathEncoder(json.JSONEncoder):
-    def default(self, obj):
-        if isinstance(obj, PosixPath):
-            return str(obj)
-        return super().default(obj)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # pages are served immediately; tool runs return 503 until the sandbox self-test passes
-    runner.start_in_background()
+    sandbox.start_in_background()
     yield
-    delete_tasks = []
-    for task in asyncio.all_tasks():
-        if "delete" in task.get_name():
-            delete_tasks.append(task)
-            task.cancel()
-    await asyncio.gather(*delete_tasks)
-    await runner.stop()
+    await sandbox.stop()  # also removes every kept run directory
 
 
-runner = PodmanRunner(ENVIRONMENT.sandbox)
+sandbox = Sandbox(ENVIRONMENT.sandbox)
 router = APIRouter(lifespan=lifespan)
 
 # execution trace: the tool page registers a random token with its run and streams the run's
@@ -86,33 +80,11 @@ def _require_view(request: Request, tool) -> None:
         raise HTTPException(status_code=404, detail="Model Not Found")
 
 
-async def delete_temp_dir(temp_dir: Path):
-    try:
-        with suppress(asyncio.CancelledError):
-            await asyncio.sleep(60 * 10)
-    finally:
-        if temp_dir.exists() and temp_dir.is_dir():
-            shutil.rmtree(temp_dir)
-
-
-async def get_temp_dir():
-    # a warm sandbox container's directory when one is waiting, else a fresh one
-    temp_dir = runner.new_run_dir()
-    try:
-        yield temp_dir
-    finally:
-        task = delete_temp_dir(temp_dir)
-        asyncio.create_task(task, name=f"delete-{temp_dir}")
-
-
-Tempdir = Annotated[Path, Depends(get_temp_dir)]
-
-
 @router.get("/healthz")
 async def healthz():
-    if runner.available:
+    if sandbox.available:
         return JSONResponse({"sandbox": "ready"})
-    return JSONResponse({"sandbox": "unavailable", "reason": runner.unavailable_reason}, status_code=503)
+    return JSONResponse({"sandbox": "unavailable", "reason": sandbox.unavailable_reason}, status_code=503)
 
 
 @router.get("/trace/{token}")
@@ -358,80 +330,35 @@ async def public_tool(
     return HTMLResponse(status_code=200)
 
 
-UPLOAD_NAME_UNSAFE = re.compile(r"[^A-Za-z0-9._ -]")
-
-
-def _upload_path(run_dir: Path, key: str, filename: Optional[str]) -> Path:
-    """Where an uploaded file is written: its own directory, inputs/<argument>/, under a cleaned name.
-
-    The visitor's name must not reach the run directory itself, where `result.json`, `args.json`,
-    the model's file and its exports live, nor leave it. Only the last component survives, reduced to
-    plain characters and without a leading dot.
-    """
-    name = PurePosixPath((filename or "").replace("\\", "/")).name
-    name = UPLOAD_NAME_UNSAFE.sub("_", name).lstrip(". ")[:128] or key
-    directory = run_dir / "inputs" / key
-    directory.mkdir(parents=True, exist_ok=True)
-    path = directory / name
-    if path.resolve().parent != directory.resolve():
-        raise HTTPException(status_code=400, detail="Bad upload filename")
-    return path
-
-
-def _coerce(tool, values: dict, run_dir: Optional[Path] = None) -> dict:
-    """Typed keyword arguments for the entrypoint: submitted values, the declared default otherwise.
-    A file parameter (Path) becomes the uploaded file saved into the run directory, or None when
-    nothing was uploaded: models build a demo in that case, which is also how validation runs.
-    """
-    kwargs = {}
-    for key, (type_name, default) in tool.arguments.items():
-        value = values.get(key, default)
-        # the stored annotation is mapped to a type through an allow-list, never evaluated: this runs
-        # in the web app, outside the sandbox
-        try:
-            python_type = resolve_annotation(type_name)
-        except AnnotationError:
-            raise HTTPException(status_code=400, detail=f"Argument Error: '{key}' has an unsupported annotation")
-        if python_type is Path:
-            upload = value if isinstance(value, StarUploadFile) and value.filename else None
-            if upload is None or run_dir is None:
-                kwargs[key] = None
-            else:
-                target = _upload_path(run_dir, key, upload.filename)
-                with open(target, "xb") as f:
-                    f.write(upload.file.read())
-                kwargs[key] = target
-        elif get_origin(python_type) is Literal or python_type is str:
-            kwargs[key] = str(value)
-        else:
-            try:
-                kwargs[key] = python_type(value)
-            except (TypeError, ValueError):
-                raise HTTPException(status_code=400, detail=f"Argument Error: {key} must be {type_name}")
-    return kwargs
-
-
-async def build_model(tool, kwargs: dict, temp_dir: Path, on_line=None):
-    """Run a model's code in the sandbox with the given arguments; the result is the export dict or an error."""
-    if not runner.available:
+async def build_model(tool, values: dict, on_line=None):
+    """Build a model's code in the sandbox from submitted values ({} builds it with its defaults).
+    The result's value is the checked export dict, or the error text."""
+    if not sandbox.available:
         raise HTTPException(status_code=503, detail="Sandbox unavailable")
-    temp_tool = (temp_dir / tool.name).with_suffix(".py")
-    temp_tool.write_text(tool.code, encoding="utf-8")
-    with open(temp_dir / "args.json", "w") as f:
-        serializer.dump(kwargs, f)
+    # the stored signature is checked again and every value converted through it, never evaluated:
+    # this runs in the web app, outside the sandbox. A file parameter without an upload is left out,
+    # so the model's own `= None` default builds its demo
+    try:
+        signature = Signature.from_arguments("python", tool.name, tool.arguments)
+        arguments, files = signature.bind(values)
+        job = Job(Source("python", tool.name, tool.code), arguments, files)
+    except (SignatureError, SourceError) as e:
+        raise HTTPException(status_code=400, detail=str(e))
     # !DANGER! user submitted code
     try:
-        result = await runner.run(temp_tool, temp_dir, on_line=on_line)
+        result = await sandbox.run(job, on_line=on_line)
+    except (JobError, SourceError) as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except SandboxBusy:
         raise HTTPException(status_code=503, detail="Server busy, try again")
     except SandboxUnavailable:
         raise HTTPException(status_code=503, detail="Sandbox unavailable")
-    # result.json is written by the run and can name any host path: keep only what the run directory holds
-    if result.outcome is Outcome.OK and isinstance(result.results, dict):
+    # the core vetted every file; keep only the export's fixed names and the measurements' shape
+    if result.outcome is Outcome.OK and isinstance(result.value, dict):
         try:
-            result.results = checked_build(temp_dir, result.results)
+            result.value = checked_build(result.value)
         except BuildFileError as e:
-            result.results = f"Export Error: {e}"
+            result.value = f"Export Error: {e}"
     return result
 
 
@@ -439,21 +366,39 @@ def build_failure(result) -> Optional[str]:
     """Why a build did not produce a model, or None when it did."""
     if result.outcome is not Outcome.OK:
         return result.message + (f"\n{result.stderr_tail}" if result.stderr_tail else "")
-    if not isinstance(result.results, dict) or "stl" not in result.results:
-        return str(result.results)  # the runtime's own error text (Runtime Error ..., Export Error ...)
+    if not isinstance(result.value, dict) or "stl" not in result.value:
+        return str(result.value)  # the runtime's own error text (Runtime Error ..., Export Error ...)
     return None
 
 
-def model_file_urls(root_path: str, result_files: dict) -> tuple[str, str]:
-    """Download URLs (under /download/) for the stl and step of a run."""
-
-    def url(path: Path) -> str:
-        return (root_path or "") + (Path("/download") / path.relative_to(path.anchor)).as_posix()
-
-    return url(result_files["stl"]), url(result_files["step"])
+def download_url(out: OutputFile, root_path: str = "") -> str:
+    """Where a file of a run is downloaded: /download/<run>/<name inside the run directory>."""
+    return f"{root_path or ''}/download/{out.run}/{quote(out.name)}"
 
 
-async def _run_tool(request: Request, id: int, temp_dir: Path, session, channel):
+def model_file_urls(root_path: str, build: dict) -> tuple[str, str]:
+    """Download URLs for the stl and step of a run."""
+    return download_url(build["stl"], root_path), download_url(build["step"], root_path)
+
+
+async def _form_values(request: Request, tool) -> dict:
+    """The submitted values for the model's arguments: strings, and uploads as InputFile (an empty file
+    input is no upload). Stray fields are ignored."""
+    values = {}
+    if len(tool.arguments):
+        form = await request.form()
+        for key, value in form.items():
+            if key not in tool.arguments:
+                continue
+            if isinstance(value, StarUploadFile):
+                if value.filename:
+                    values[key] = InputFile(value.filename, await value.read())
+            else:
+                values[key] = value
+    return values
+
+
+async def _run_tool(request: Request, id: int, session, channel):
     tool = db_tools.get_tool_by_id(session, id)
 
     if tool is None:
@@ -461,23 +406,18 @@ async def _run_tool(request: Request, id: int, temp_dir: Path, session, channel)
 
     _require_view(request, tool)
 
-    values = {}
-    if len(tool.arguments):
-        form = await request.form()
-        values = {k: v for k, v in form.items() if k in tool.arguments}
-    kwargs = _coerce(tool, values, temp_dir)
+    values = await _form_values(request, tool)
 
     tool.usage = tool.usage + 1
     session.commit()
 
-    return await build_model(tool, kwargs, temp_dir, on_line=channel.put if channel is not None else None)
+    return await build_model(tool, values, on_line=channel.put if channel is not None else None)
 
 
 @router.post("/model/{id}", response_class=HTMLResponse)
 async def run_isolated(
     request: Request,
     id: int,
-    temp_dir: Tempdir,
     session: db_tools.SessionDep,
 ) -> str:
     # the page sends its trace token as a header so it can never collide with a tool argument
@@ -487,7 +427,7 @@ async def run_isolated(
         TRACES.expire()
         channel = TRACES.register(token)
     try:
-        result = await _run_tool(request, id, temp_dir, session, channel)
+        result = await _run_tool(request, id, session, channel)
     finally:
         if channel is not None:
             channel.close()  # every exit, including 404/503, ends the page's trace stream
@@ -502,13 +442,13 @@ async def run_isolated(
             return HTMLResponse(content=render.render(failure))
         return JSONResponse({"detail": failure}, status_code=422)
 
-    stl_url, step_url = model_file_urls(root_path, result.results)
+    stl_url, step_url = model_file_urls(root_path, result.value)
     if htmx:
         tool = db_tools.get_tool_by_id(session, id)
         return HTMLResponse(
-            content=render.model_result(root_path, tool.name, stl_url, step_url, result.results["meta"])
+            content=render.model_result(root_path, tool.name, stl_url, step_url, result.value["meta"])
         )
-    return json.dumps({"stl": stl_url, "step": step_url, "meta": result.results["meta"]})
+    return json.dumps({"stl": stl_url, "step": step_url, "meta": result.value["meta"]})
 
 
 @router.get("/model/{id}/preview.svg")
@@ -540,35 +480,29 @@ async def model_default_file(request: Request, id: int, ext: Literal["stl", "ste
     return FileResponse(path, media_type=media, filename=f"{tool.name}.{ext}")
 
 
-@security.constant_time_with_random_delay(0.2, 1)
-@router.get("/download/{file_str:path}", response_class=FileResponse)
-async def download_file(file_str: str, preview: bool = False):
-    file_path = (Path("/") / Path(file_str)).resolve()
-    run_root = ENVIRONMENT.sandbox.run_dir.resolve()
-
-    # only files inside a run directory are served
-    if not file_path.is_relative_to(run_root) or file_path == run_root:
-        raise HTTPException(status_code=403, detail="Forbidden File Access")
-
-    if not file_path.is_file():
+@router.get("/download/{run}/{name:path}", response_class=FileResponse)
+async def download_file(run: str, name: str, preview: bool = False):
+    # only a file of a run the sandbox still keeps, checked again (no symlinks, nothing outside the run)
+    out = sandbox.output(run, name)
+    if out is None:
         # run directories are removed ten minutes after the run (and on a restart of the app)
         raise HTTPException(
             status_code=404, detail="This result has expired: files are kept for 10 minutes after a run."
         )
 
     # a preview is a file the result page embeds (image, audio, video, pdf): real media type, inline
-    if preview and file_path.suffix.lower() in render.PREVIEW_SUFFIXES:
+    if preview and out.path.suffix.lower() in render.PREVIEW_SUFFIXES:
         return FileResponse(
-            file_path,
-            media_type=render.preview_media_type(file_path.name),
-            filename=file_path.name,
+            out.path,
+            media_type=render.preview_media_type(out.filename),
+            filename=out.filename,
             content_disposition_type="inline",
         )
 
     return FileResponse(
-        file_path,
+        out.path,
         media_type="application/octet-stream",
-        filename=file_path.name,
+        filename=out.filename,
     )
 
 

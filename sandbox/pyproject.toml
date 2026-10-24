@@ -2,8 +2,10 @@
 name = "sandbox"
 version = "0.1.0"
 description = "CadQuery Catalog model runtime: runs one model and exports it"
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 dependencies = [
+    # the runner sandbox.runner wraps; same tag as server/pyproject.toml
+    "sandboxcore @ https://github.com/RaubCamaioni/sandboxcore/archive/refs/tags/v0.1.0.tar.gz",
     "cadquery>=2.4.0",
     "pillow>=10.0.0",
 ]

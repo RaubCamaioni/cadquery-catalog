@@ -7,7 +7,8 @@ from app import metadata
 from app.app import app
 from app.metadata.tags import Tags
 from app.models import tools as db
-from app.utility.podman_runner import Outcome, RunResult
+from sandboxcore.host import Outcome
+from sandboxcore.host.podman import RunResult
 
 from tests.test_auth_routes import github  # noqa: F401  (fixture)
 from tests.test_upload_models import MODEL, BuildingRunner, logged_in  # noqa: F401  (fixtures)
@@ -38,8 +39,9 @@ def code_of(model_id):
 
 def post(c, monkeypatch, runner, name, data=None, url="/manage/model/upload", file=True):
     from app.routes import tools as tools_routes
+    from sandboxcore.host import Sandbox
 
-    monkeypatch.setattr(tools_routes, "runner", runner)
+    monkeypatch.setattr(tools_routes, "sandbox", Sandbox(tools_routes.ENVIRONMENT.sandbox, runner=runner))
     code = MODEL.replace("demo_box", name)
     files = {"file": (f"{name}.py", code.encode(), "text/x-python")} if file else {"file": ("", b"", "application/octet-stream")}
     return c.post(url, files=files, data=data or {})

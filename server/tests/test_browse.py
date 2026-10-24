@@ -12,6 +12,7 @@ from app.metadata.categories import Categories
 from app.models import tools as db
 from app.routes import browse
 from app.routes import tools as tools_routes
+from sandboxcore.host import Sandbox
 
 from tests.test_tool_routes import StubRunner
 
@@ -39,7 +40,7 @@ def models():
 
 @pytest.fixture
 def client(monkeypatch):
-    monkeypatch.setattr(tools_routes, "runner", StubRunner())
+    monkeypatch.setattr(tools_routes, "sandbox", Sandbox(tools_routes.ENVIRONMENT.sandbox, runner=StubRunner()))
     return TestClient(app)
 
 

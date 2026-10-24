@@ -1,16 +1,14 @@
 """A build's files, read from the run directory without trusting the run.
 
 Model code runs in the same sandbox process as the runner, so it can write its own result.json
-naming any host path (`/proc/self/environ`, the database) as its STL or preview, and the host
-would then copy that file into the catalog. The host therefore ignores every path in result.json:
-it opens the three fixed names in the run directory, refuses symlinks and anything that is not a
-regular file, caps the size, and accepts only the numeric shape of the measurements.
+naming any host path (`/proc/self/environ`, the database) as its STL or preview. sandboxcore turns
+every returned path into an OutputFile only if it is a regular file inside the run directory reached
+without symlinks; on top of that the catalog takes each export only under its fixed name, caps its
+size, and accepts only the numeric shape of the measurements.
 """
 
 import math
-import os
-import stat
-from pathlib import Path
+from sandboxcore.host import OutputFile, RunFileError
 
 FILES = {"stl": "model.stl", "step": "model.step", "preview": "preview.svg"}
 MAX_BYTES = {"stl": 64 * 1024 * 1024, "step": 64 * 1024 * 1024, "preview": 4 * 1024 * 1024}
@@ -21,38 +19,29 @@ class BuildFileError(ValueError):
     pass
 
 
-def read_build_file(path: Path, limit: int) -> bytes:
-    """The bytes of a regular file that is not a symlink and holds at most `limit` bytes."""
+def read_build_file(out, limit: int) -> bytes:
+    """The bytes of a vetted export file holding at most `limit` bytes."""
+    if not isinstance(out, OutputFile):
+        raise BuildFileError("the build is missing a file")
     try:
-        # O_NONBLOCK: a FIFO the model left behind must not block the event loop on open
-        fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
-    except OSError:
-        raise BuildFileError(f"{path.name} is missing or not a plain file") from None
-    try:
-        info = os.fstat(fd)
-        if not stat.S_ISREG(info.st_mode):
-            raise BuildFileError(f"{path.name} is not a plain file")
-        if info.st_size > limit:
-            raise BuildFileError(f"{path.name} is larger than {limit // (1024 * 1024)} MB")
-        with os.fdopen(fd, "rb", closefd=False) as f:
-            data = f.read(limit + 1)
-        if len(data) > limit:
-            raise BuildFileError(f"{path.name} is larger than {limit // (1024 * 1024)} MB")
-        return data
-    finally:
-        os.close(fd)
+        return out.read(limit)
+    except RunFileError as e:
+        raise BuildFileError(str(e)) from None
 
 
-def checked_build(run_dir: Path, results) -> dict:
-    """The export dict for a run: the fixed file names in `run_dir` (each checked) and the measurements
-    checked against their schema. BuildFileError when anything is out of shape."""
+def checked_build(results) -> dict:
+    """The export dict of a run: each file the vetted OutputFile under its fixed name (and readable within
+    its size cap), and the measurements checked against their schema. BuildFileError when anything is
+    out of shape."""
     if not isinstance(results, dict):
         raise BuildFileError("the build returned no model")
     files = {}
     for key, name in FILES.items():
-        path = run_dir / name
-        read_build_file(path, MAX_BYTES[key])
-        files[key] = path
+        out = results.get(key)
+        if not isinstance(out, OutputFile) or out.name != name:
+            raise BuildFileError(f"{name} is missing or not a plain file")
+        read_build_file(out, MAX_BYTES[key])
+        files[key] = out
     return {**files, "meta": checked_meta(results.get("meta"))}
 
 
