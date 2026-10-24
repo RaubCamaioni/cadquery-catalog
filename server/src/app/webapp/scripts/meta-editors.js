@@ -217,7 +217,8 @@
         if (editor.dataset.free) {
             const typed = input.value.trim().toLowerCase();
             if (option && (!typed || option.dataset.value.startsWith(typed))) pick(editor, option);
-            else { addTyped(editor, input); close(editor); }
+            else if (typed) { addTyped(editor, input); close(editor); }
+            else { input.focus(); refresh(editor, input); } // nothing typed: open the list of tags in use
         } else {
             const choice = option || onlyMatch(editor, input);
             if (choice) { pick(editor, choice); return; }
@@ -252,10 +253,11 @@
     document.addEventListener("mousedown", e => {
         // [+] must not take the focus either, or the menu (and its highlighted choice) is gone by the click
         if (e.target.closest(".meta-add")) { e.preventDefault(); return; }
-        const option = e.target.closest(".meta-option");
-        if (!option) return;
+        // nor the menu itself: grabbing its scrollbar would close it
+        if (!e.target.closest(".meta-menu")) return;
         e.preventDefault();
-        pick(option.closest(".meta-editor"), option);
+        const option = e.target.closest(".meta-option");
+        if (option) pick(option.closest(".meta-editor"), option);
     });
 
     document.addEventListener("click", e => {
