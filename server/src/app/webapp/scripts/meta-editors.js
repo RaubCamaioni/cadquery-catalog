@@ -39,6 +39,16 @@
         return [...chips(editor).querySelectorAll(".meta-chip")].map(c => c.dataset.value);
     }
 
+    // "3 of 10" under the box
+    function count(editor) {
+        const c = editor.querySelector(".meta-count");
+        if (c && editor.dataset.max) c.textContent = `${values(editor).length} of ${editor.dataset.max}`;
+    }
+
+    function countAll(root) {
+        root.querySelectorAll(".meta-editor[data-max]").forEach(count);
+    }
+
     function add(editor, value, text) {
         const max = parseInt(editor.dataset.max || "0", 10);
         if (!value || values(editor).includes(value)) return;
@@ -53,7 +63,9 @@
             return;
         }
         chips(editor).append(chip(editor, value, text));
+        chips(editor).scrollTop = chips(editor).scrollHeight; // the new one is in view
         note(editor, "");
+        count(editor);
     }
 
     // tags: the typed text becomes a chip (a comma separates several)
@@ -99,7 +111,23 @@
             m.append(li);
         }
         m.hidden = choices.length === 0;
+        place(editor);
         highlight(editor, 0);
+    }
+
+    // under the box, as wide as it, using all the room below it (or above, when there is more room there)
+    function place(editor) {
+        const m = menu(editor);
+        if (m.hidden) return;
+        const box = editor.querySelector(".meta-field").getBoundingClientRect();
+        const below = window.innerHeight - box.bottom - 8;
+        const above = box.top - 8;
+        const up = below < 160 && above > below;
+        m.style.left = `${box.left}px`;
+        m.style.minWidth = `${box.width}px`;
+        m.style.maxHeight = `${Math.max(80, up ? above : below)}px`; // all the room there is: it scrolls only if needed
+        m.style.top = up ? "" : `${box.bottom}px`;
+        m.style.bottom = up ? `${window.innerHeight - box.top}px` : "";
     }
 
     function options(editor) {
@@ -177,6 +205,21 @@
         refresh(editor, input);
     });
 
+    // Enter in the box and [+] beside it: a highlighted suggestion (for tags, one that starts with the typed
+    // text) wins; otherwise tags take the typed text and categories the one leaf it names
+    function commit(editor, input) {
+        const option = menu(editor).hidden ? null : active(editor);
+        if (editor.dataset.free) {
+            const typed = input.value.trim().toLowerCase();
+            if (option && (!typed || option.dataset.value.startsWith(typed))) pick(editor, option);
+            else { addTyped(editor, input); close(editor); }
+        } else {
+            const choice = option || onlyMatch(editor, input);
+            if (choice) pick(editor, choice);
+            else note(editor, "pick one of the listed categories");
+        }
+    }
+
     document.addEventListener("keydown", e => {
         const input = e.target.closest(".meta-input");
         if (!input) return;
@@ -192,17 +235,7 @@
             close(editor);
         } else if (e.key === "Enter") {
             e.preventDefault(); // Enter adds a chip; it never submits the form around the editor
-            const option = menu(editor).hidden ? null : active(editor);
-            if (editor.dataset.free) {
-                // a highlighted suggestion that starts with the typed text wins, else the text itself
-                const typed = input.value.trim().toLowerCase();
-                if (option && (!typed || option.dataset.value.startsWith(typed))) pick(editor, option);
-                else { addTyped(editor, input); close(editor); }
-            } else if (option) {
-                pick(editor, option);
-            } else {
-                note(editor, "pick one of the listed categories");
-            }
+            commit(editor, input);
         }
     });
 
@@ -215,11 +248,18 @@
     });
 
     document.addEventListener("click", e => {
+        const plus = e.target.closest(".meta-add");
+        if (plus) {
+            const editor = plus.closest(".meta-editor");
+            commit(editor, editor.querySelector(".meta-input"));
+            return;
+        }
         const remove = e.target.closest(".meta-remove");
         if (remove) {
             const editor = remove.closest(".meta-editor");
             remove.closest(".meta-chip").remove();
             note(editor, "");
+            count(editor);
             return;
         }
         // in an ordered editor, clicking a chip makes it the first (the primary category)
@@ -240,6 +280,16 @@
             }
         }
     }, true);
+
+    // an open menu follows its box when the dialog (or the page) scrolls or the window is resized
+    function placeOpen() {
+        document.querySelectorAll(".meta-menu:not([hidden])").forEach(m => place(m.closest(".meta-editor")));
+    }
+    document.addEventListener("scroll", placeOpen, true);
+    window.addEventListener("resize", placeOpen);
+
+    document.addEventListener("DOMContentLoaded", () => countAll(document));
+    document.addEventListener("htmx:load", e => countAll(e.target));
 
     // the message for a failed request: FastAPI's detail is a string, or a list for a 422; anything else is
     // a server error

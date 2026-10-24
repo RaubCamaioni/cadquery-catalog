@@ -1,24 +1,27 @@
-{# categories editor: `categories` (list of paths) are the current ones, the first is the primary; clicking a chip
-   makes it the primary. The dropdown offers the tree's leaves matching what is typed; each chip holds a hidden
-   `categories` input with the path. #}
+{# categories editor: a text box with [+] on top, the chosen categories in a box below; the first is the primary
+   and clicking a chip makes it the primary. The dropdown offers the tree's leaves matching what is typed; each
+   chip holds a hidden `categories` input with the path. #}
 <div class="meta-editor" data-kind="categories" data-ordered="1" data-max="3" data-alone="misc"
     data-choices="{{ category_leaves() | tojson | forceescape }}">
     <input type="hidden" name="categories.present" value="1">
     <span class="text-dim">categories:</span>
-    <span class="meta-chips">
+    <div class="meta-entry">
+        <span class="field meta-field"><input
+            class="meta-input"
+            type="text"
+            autocomplete="off"
+            spellcheck="false"
+            placeholder="type to find a category"
+            aria-label="add a category"><ul class="meta-menu" role="listbox" hidden></ul></span>
+        <button type="button" class="meta-add hover:bg-paper hover:text-ink" title="add the category">[+]</button>
+    </div>
+    <div class="meta-chips" data-empty="none: Miscellaneous">
         {%- for path in categories if path != "misc" or categories | length > 1 %}
         <span class="meta-chip" data-value="{{ path }}" title="click to make this the primary category"><span
             class="meta-chip-label">{{ category_label(path) }}</span><input
             type="hidden" name="categories" value="{{ path }}"><button type="button"
             class="meta-remove text-dim hover:bg-paper hover:text-ink">[x]</button></span>
         {%- endfor %}
-    </span>
-    <span class="field meta-field"><input
-        class="meta-input"
-        type="text"
-        autocomplete="off"
-        spellcheck="false"
-        placeholder="type to pick a category (none: Miscellaneous)"
-        aria-label="add a category"><ul class="meta-menu" role="listbox" hidden></ul></span>
-    <span class="meta-note text-dim"></span>
+    </div>
+    <div class="meta-foot"><span class="meta-note text-dim"></span><span class="meta-count text-dim"></span></div>
 </div>

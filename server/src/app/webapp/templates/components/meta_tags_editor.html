@@ -1,22 +1,25 @@
-{# tags editor: `tags` (list) are the current ones. Each chip holds a hidden `tags` input; `tags.present` tells
-   the server the editor was shown, so an emptied editor clears the tags. The dropdown offers tags already in
-   use (most used first); Enter or a comma adds what was typed. #}
+{# tags editor: a text box with [+] on top, the chosen tags in a fixed-height box below. Each chip holds a hidden
+   `tags` input; `tags.present` tells the server the editor was shown, so an emptied editor clears the tags. The
+   dropdown offers tags already in use (most used first); Enter, a comma or [+] adds what was typed. #}
 <div class="meta-editor" data-kind="tags" data-free="1" data-max="10" data-suggest="{{ root_path }}/tags/suggest">
     <input type="hidden" name="tags.present" value="1">
     <span class="text-dim">tags:</span>
-    <span class="meta-chips">
+    <div class="meta-entry">
+        <span class="field meta-field"><input
+            class="meta-input"
+            type="text"
+            autocomplete="off"
+            spellcheck="false"
+            placeholder="type a tag"
+            aria-label="add a tag"><ul class="meta-menu" role="listbox" hidden></ul></span>
+        <button type="button" class="meta-add hover:bg-paper hover:text-ink" title="add the tag">[+]</button>
+    </div>
+    <div class="meta-chips" data-empty="no tags yet">
         {%- for tag in tags %}
         <span class="meta-chip" data-value="{{ tag }}"><span class="meta-chip-label">{{ tag }}</span><input
             type="hidden" name="tags" value="{{ tag }}"><button type="button"
             class="meta-remove text-dim hover:bg-paper hover:text-ink">[x]</button></span>
         {%- endfor %}
-    </span>
-    <span class="field meta-field"><input
-        class="meta-input"
-        type="text"
-        autocomplete="off"
-        spellcheck="false"
-        placeholder="add a tag"
-        aria-label="add a tag"><ul class="meta-menu" role="listbox" hidden></ul></span>
-    <span class="meta-note text-dim"></span>
+    </div>
+    <div class="meta-foot"><span class="meta-note text-dim"></span><span class="meta-count text-dim"></span></div>
 </div>
