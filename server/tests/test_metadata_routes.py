@@ -192,6 +192,8 @@ def test_edit_dialog_is_filled_with_the_current_values(monkeypatch, logged_in):
     assert f'hx-post="/manage/model/update/{model_id}"' in page and "edit form_box.py" in page
     assert 'value="box"' in page and 'value="home/storage"' in page and "A box.\nWith a lid.</textarea>" in page
     assert 'name="file"' in page and "required" not in page.split('name="file"')[1].split(">")[0]
+    assert "replaces the code" not in page and "[&lt;]" not in page and "<datalist" not in page
+    assert 'title="click to make this the primary category"' in page and "home/kitchen" in page  # the choices
     assert "[save]" in page and "[cancel]" in page
 
 
@@ -208,7 +210,8 @@ def test_profile_rows_show_the_category_and_open_the_dialog(monkeypatch, logged_
     model_id, _ = stored("row_box")
     rows = logged_in.post("/user/models").text
     row = rows.split(f">row_box.py<")[1].split("</li>")[0]
-    assert "Home › Storage" in row and f'hx-get="/manage/model/{model_id}/edit"' in row and "[edit]" in row
+    assert f'hx-get="/manage/model/{model_id}/edit"' in row and "[edit]" in row
+    assert "Home › Storage" not in rows  # categories are shown and changed in the dialog, not the table
     assert 'hx-get="/manage/model/create"' in rows and "[create]" in rows
     assert "/manage/model/update/" not in rows  # no one-click file replacement any more
 
@@ -261,4 +264,4 @@ def test_suggest_route(monkeypatch, logged_in):
         Tags().save(session, model.id, ["zebra-stripe"])
         session.commit()
     r = TestClient(app).get("/tags/suggest", params={"q": "zeb"})
-    assert r.status_code == 200 and '<option value="zebra-stripe">' in r.text and "zebra-stripe · 1" in r.text
+    assert r.status_code == 200 and r.json() == [{"tag": "zebra-stripe", "count": 1}]

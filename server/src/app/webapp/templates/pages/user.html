@@ -33,7 +33,7 @@
             <section>
                 <div class="prompt font-bold mb-1">ls -l tools/ | column -t</div>
                 {# the upload row and the tool rows reload on page load and whenever an upload sends "refresh" #}
-                <ul id="tool-rows" class="tool-table" style="--cols: 5"
+                <ul id="tool-rows" class="tool-table"
                     hx-post="{{ root_path }}/user/models"
                     hx-trigger="load, refresh"
                     hx-swap="innerHTML">

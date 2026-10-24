@@ -1,36 +1,29 @@
-// Metadata editors (tags, categories): chips that each carry a hidden form input, and a text box with a
-// <datalist> to pick from. One delegated set of listeners serves every editor on the page, including
-// editors htmx swaps in later.
+// Metadata editors (tags, categories): chips that each carry a hidden form input, and a text box with a dropdown
+// of choices under it. Tags offer the tags already in use (from the server, most used first) and accept new
+// ones; categories offer only the tree's leaves. One delegated set of listeners serves every editor on the page,
+// including editors htmx swaps in later.
 (function () {
     if (window.metaEditors) return;
     window.metaEditors = true;
 
     function chip(editor, value, text) {
-        const kind = editor.dataset.kind;
         const span = document.createElement("span");
         span.className = "meta-chip";
         span.dataset.value = value;
+        if (editor.dataset.ordered) span.title = "click to make this the primary category";
         const label = document.createElement("span");
         label.className = "meta-chip-label";
         label.textContent = text;
         const input = document.createElement("input");
         input.type = "hidden";
-        input.name = kind;
+        input.name = editor.dataset.kind;
         input.value = value;
-        span.append(label, input);
-        if (editor.dataset.ordered) {
-            span.append(button("[<]", "meta-left"), button("[>]", "meta-right"));
-        }
-        span.append(button("[x]", "meta-remove"));
+        const remove = document.createElement("button");
+        remove.type = "button";
+        remove.className = "meta-remove text-dim hover:bg-paper hover:text-ink";
+        remove.textContent = "[x]";
+        span.append(label, input, remove);
         return span;
-    }
-
-    function button(text, cls) {
-        const b = document.createElement("button");
-        b.type = "button";
-        b.className = cls + " text-dim hover:bg-paper hover:text-ink";
-        b.textContent = text;
-        return b;
     }
 
     function chips(editor) {
@@ -63,7 +56,7 @@
         note(editor, "");
     }
 
-    // tags: Enter or a comma turns the typed text into a chip
+    // tags: the typed text becomes a chip (a comma separates several)
     function addTyped(editor, input) {
         for (const raw of input.value.split(",")) {
             const tag = raw.trim().toLowerCase().replace(/\s+/g, "-");
@@ -72,52 +65,166 @@
         input.value = "";
     }
 
-    // categories: only a label from the datalist becomes a chip; it carries the option's path
-    function addPicked(editor, input) {
-        const option = [...editor.querySelectorAll("datalist option")].find(o => o.value === input.value);
-        if (!option) return false;
-        add(editor, option.dataset.path, option.value);
-        input.value = "";
-        return true;
+    // --- the dropdown ------------------------------------------------------------------------------------------
+
+    let timer; // the pending suggestion request
+
+    function menu(editor) {
+        return editor.querySelector(".meta-menu");
     }
 
-    let timer;
+    function close(editor) {
+        clearTimeout(timer); // a suggestion request still on its way must not reopen it
+        const m = menu(editor);
+        m.hidden = true;
+        m.innerHTML = "";
+    }
+
+    // choices: [{value, label, hint}]; the first is highlighted so Enter takes it
+    function show(editor, choices) {
+        const m = menu(editor);
+        m.innerHTML = "";
+        for (const choice of choices) {
+            const li = document.createElement("li");
+            li.className = "meta-option";
+            li.dataset.value = choice.value;
+            li.dataset.label = choice.label;
+            li.textContent = choice.label;
+            if (choice.hint) {
+                const hint = document.createElement("span");
+                hint.className = "text-dim";
+                hint.textContent = " " + choice.hint;
+                li.append(hint);
+            }
+            m.append(li);
+        }
+        m.hidden = choices.length === 0;
+        highlight(editor, 0);
+    }
+
+    function options(editor) {
+        return [...menu(editor).querySelectorAll(".meta-option")];
+    }
+
+    function highlight(editor, index) {
+        const all = options(editor);
+        all.forEach((o, i) => o.classList.toggle("meta-option-active", i === index));
+        if (all[index]) all[index].scrollIntoView({block: "nearest"});
+    }
+
+    function active(editor) {
+        return menu(editor).querySelector(".meta-option-active");
+    }
+
+    // a pick closes the menu (it would otherwise cover the editor below); typing or arrow keys reopen it
+    function pick(editor, option) {
+        add(editor, option.dataset.value, option.dataset.label);
+        const input = editor.querySelector(".meta-input");
+        input.value = "";
+        close(editor);
+        input.focus();
+    }
+
+    function refresh(editor, input) {
+        const typed = input.value.trim().toLowerCase();
+        const chosen = values(editor);
+        const max = parseInt(editor.dataset.max || "0", 10);
+        if (max && chosen.length >= max) {
+            close(editor); // full: nothing more can be added
+            return;
+        }
+        if (editor.dataset.free) {
+            clearTimeout(timer);
+            timer = setTimeout(async () => {
+                const r = await fetch(editor.dataset.suggest + "?q=" + encodeURIComponent(typed));
+                // stale: the box lost focus, or its text changed (or was turned into a chip) meanwhile
+                if (!r.ok || document.activeElement !== input || input.value.trim().toLowerCase() !== typed) return;
+                const tags = (await r.json()).filter(t => !chosen.includes(t.tag));
+                show(editor, tags.map(t => ({value: t.tag, label: t.tag, hint: `· ${t.count}`})));
+            }, 120);
+        } else {
+            const leaves = JSON.parse(editor.dataset.choices);
+            show(editor, leaves
+                .filter(([path, label]) => !chosen.includes(path) && label.toLowerCase().includes(typed))
+                .map(([path, label]) => ({value: path, label})));
+        }
+    }
+
+    // the category the typed text names, if exactly one leaf matches it
+    function onlyMatch(editor, input) {
+        const typed = input.value.trim().toLowerCase();
+        const leaves = JSON.parse(editor.dataset.choices).filter(([, label]) => label.toLowerCase().includes(typed));
+        return typed && leaves.length === 1 ? {dataset: {value: leaves[0][0], label: leaves[0][1]}} : null;
+    }
+
+    document.addEventListener("focusin", e => {
+        const input = e.target.closest(".meta-input");
+        if (input) refresh(input.closest(".meta-editor"), input);
+    });
+
+    document.addEventListener("focusout", e => {
+        const input = e.target.closest(".meta-input");
+        if (!input) return;
+        const editor = input.closest(".meta-editor");
+        setTimeout(() => { if (document.activeElement !== input) close(editor); }, 150);
+    });
+
     document.addEventListener("input", e => {
         const input = e.target.closest(".meta-input");
         if (!input) return;
         const editor = input.closest(".meta-editor");
-        if (editor.dataset.free) {
-            if (input.value.includes(",")) addTyped(editor, input);
-            const url = editor.dataset.suggest;
-            if (!url) return;
-            clearTimeout(timer);
-            timer = setTimeout(async () => {
-                const r = await fetch(url + "?q=" + encodeURIComponent(input.value.trim()));
-                if (r.ok) editor.querySelector("datalist").innerHTML = await r.text();
-            }, 150);
-        } else {
-            addPicked(editor, input);
-        }
+        if (editor.dataset.free && input.value.includes(",")) addTyped(editor, input);
+        refresh(editor, input);
     });
 
     document.addEventListener("keydown", e => {
         const input = e.target.closest(".meta-input");
-        if (!input || e.key !== "Enter") return;
-        e.preventDefault(); // Enter adds a chip; it never submits the form around the editor
+        if (!input) return;
         const editor = input.closest(".meta-editor");
-        if (editor.dataset.free) addTyped(editor, input);
-        else if (!addPicked(editor, input)) note(editor, "pick one of the listed categories");
+        const all = options(editor);
+        const index = all.indexOf(active(editor));
+        if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+            e.preventDefault();
+            if (!all.length) refresh(editor, input); // closed after a pick: the arrows open it again
+            else highlight(editor, (index + (e.key === "ArrowDown" ? 1 : all.length - 1)) % all.length);
+        } else if (e.key === "Escape") {
+            if (!menu(editor).hidden) e.preventDefault(); // close the menu, not the dialog around it
+            close(editor);
+        } else if (e.key === "Enter") {
+            e.preventDefault(); // Enter adds a chip; it never submits the form around the editor
+            const option = menu(editor).hidden ? null : active(editor);
+            if (editor.dataset.free) {
+                // a highlighted suggestion that starts with the typed text wins, else the text itself
+                const typed = input.value.trim().toLowerCase();
+                if (option && (!typed || option.dataset.value.startsWith(typed))) pick(editor, option);
+                else { addTyped(editor, input); close(editor); }
+            } else if (option) {
+                pick(editor, option);
+            } else {
+                note(editor, "pick one of the listed categories");
+            }
+        }
+    });
+
+    // mousedown, not click: it lands before the box loses focus and the menu closes
+    document.addEventListener("mousedown", e => {
+        const option = e.target.closest(".meta-option");
+        if (!option) return;
+        e.preventDefault();
+        pick(option.closest(".meta-editor"), option);
     });
 
     document.addEventListener("click", e => {
-        const b = e.target.closest(".meta-remove, .meta-left, .meta-right");
-        if (!b) return;
-        const c = b.closest(".meta-chip");
-        const editor = c.closest(".meta-editor");
-        if (b.classList.contains("meta-remove")) c.remove();
-        else if (b.classList.contains("meta-left") && c.previousElementSibling) c.after(c.previousElementSibling);
-        else if (b.classList.contains("meta-right") && c.nextElementSibling) c.before(c.nextElementSibling);
-        note(editor, "");
+        const remove = e.target.closest(".meta-remove");
+        if (remove) {
+            const editor = remove.closest(".meta-editor");
+            remove.closest(".meta-chip").remove();
+            note(editor, "");
+            return;
+        }
+        // in an ordered editor, clicking a chip makes it the first (the primary category)
+        const c = e.target.closest(".meta-editor[data-ordered] .meta-chip");
+        if (c) chips(c.closest(".meta-editor")).prepend(c);
     });
 
     // text still in a box when the form is sent becomes a chip first, so it is not silently dropped; this
@@ -127,7 +234,10 @@
             if (!input.value.trim()) continue;
             const editor = input.closest(".meta-editor");
             if (editor.dataset.free) addTyped(editor, input);
-            else addPicked(editor, input);
+            else {
+                const match = onlyMatch(editor, input);
+                if (match) add(editor, match.dataset.value, match.dataset.label);
+            }
         }
     }, true);
 

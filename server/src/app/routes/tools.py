@@ -190,8 +190,7 @@ async def get_user_tools(request: Request, session: db_tools.SessionDep):
         return HTMLResponse(content="")
     user: User = User.model_validate_json(request.session["user"])
     tools = db_tools.get_user_tools(session, user)
-    meta = metadata_routes.metadata.load_all(session, [tool.id for tool in tools])
-    content = render.list_item_user(request.scope.get("root_path"), tools, meta)
+    content = render.list_item_user(request.scope.get("root_path"), tools)
     return HTMLResponse(content=content)
 
 
