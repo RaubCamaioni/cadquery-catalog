@@ -3,11 +3,12 @@ from fastapi.responses import HTMLResponse
 from fastapi.exceptions import HTTPException
 from app import metadata
 from app.models import tools
+from app.routes import tools as tools_routes
+from sandboxcore.host import SandboxBusy, SandboxUnavailable, SignatureError, Source, SourceError, accept_source
+from sandboxcore.source import MAX_CODE_BYTES
 from app.models.tools import SessionDep, User, FilterDep, get_user, lift_expired_ban
 from app.routes.auth import session_user
-from pathlib import Path
 from app import TEMPLATES, ENVIRONMENT, logger
-from app.routes.tools import Tempdir
 from app.utility.build_files import MAX_BYTES, checked_meta, read_build_file
 from typing import Optional
 from urllib.parse import parse_qsl
@@ -53,25 +54,25 @@ async def tool_upload_get(request: Request):
     )
 
 
-async def validate_model(tool: tools.Tool, temp_dir: Path) -> dict:
+async def validate_model(tool: tools.Tool) -> dict:
     """Build the model once with its defaults in the sandbox. Returns the export dict (stl, step,
     preview, meta) or raises a 400 with the reason the build failed; an upload that cannot build
     is never stored.
     """
-    from app.routes.tools import _coerce, build_failure, build_model
+    from app.routes.tools import build_failure, build_model
 
-    result = await build_model(tool, _coerce(tool, {}), temp_dir)
+    result = await build_model(tool, {})
     failure = build_failure(result)
     if failure is not None:
         raise HTTPException(status_code=400, detail=f"Model Build Failed: {failure}")
-    return result.results
+    return result.value
 
 
 def store_default_build(tool: tools.Tool, build: dict) -> None:
     """Keep the default STL and STEP beside the database and the thumbnail and measurements on the row."""
     target = ENVIRONMENT.MODELS_DIR / str(tool.id)
     target.mkdir(parents=True, exist_ok=True)
-    # read again through the same checks: never follow a link or open a FIFO the model left behind
+    # read again through the same checks (OutputFile.read): never a link or a FIFO the model left behind
     for key, name in (("stl", "model.stl"), ("step", "model.step")):
         (target / name).write_bytes(read_build_file(build[key], MAX_BYTES[key]))
     try:
@@ -101,14 +102,33 @@ async def _parse_metadata(request: Request) -> dict:
         raise HTTPException(status_code=400, detail=str(e))
 
 
-async def _read_code(file: Optional[UploadFile], filter) -> Optional[tuple[str, str]]:
-    """(name, code) of the uploaded file, or None when the form's file input was left empty."""
+async def _read_code(file: Optional[UploadFile], filter) -> Optional[Source]:
+    """The uploaded file as accepted source, or None when the form's file input was left empty."""
     if file is None or not file.filename:
         return None
-    code = (await file.read()).decode()
-    if not filter.is_clean(code):
+    # read at most one byte past the limit: accept_source refuses anything larger
+    data = await file.read(MAX_CODE_BYTES + 1)
+    try:
+        source = accept_source(data, file.filename)
+    except SourceError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    if not filter.is_clean(source.code):
         raise HTTPException(status_code=400, detail="Blocked by profanity filter.")
-    return Path(file.filename).stem, code
+    return source
+
+
+async def _create_tool(user_id: int, source: Source) -> tools.Tool:
+    """Prepare the code, read its signature in the sandbox (never parsed here), and build the model."""
+    source = tools.prepare_source(source)
+    try:
+        signature = await tools_routes.sandbox.inspect(source)
+    except (SignatureError, SourceError) as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except SandboxBusy:
+        raise HTTPException(status_code=503, detail="Server busy, try again")
+    except SandboxUnavailable:
+        raise HTTPException(status_code=503, detail="Sandbox unavailable")
+    return tools.create_tool(user_id, source, signature)
 
 
 @router.post("/manage/model/upload", response_class=HTMLResponse)
@@ -116,7 +136,6 @@ async def model_create(
     request: Request,
     session: SessionDep,
     filter: FilterDep,
-    temp_dir: Tempdir,
     file: Optional[UploadFile] = None,
 ):
     """The dialog's [create]: a new model from its file and its metadata."""
@@ -125,8 +144,8 @@ async def model_create(
     upload = await _read_code(file, filter)
     if upload is None:
         raise HTTPException(status_code=400, detail="Choose the model's .py file.")
-    tool = tools.create_tool(user.id, *upload)
-    build = await validate_model(tool, temp_dir)
+    tool = await _create_tool(user.id, upload)
+    build = await validate_model(tool)
     session.add(tool)
     session.commit()
     session.refresh(tool)
@@ -142,7 +161,6 @@ async def model_update(
     id: int,
     session: SessionDep,
     filter: FilterDep,
-    temp_dir: Tempdir,
     file: Optional[UploadFile] = None,
 ):
     """The dialog's [save]: the metadata, and the code too when a file was chosen. The owner may do both; an
@@ -156,8 +174,8 @@ async def model_update(
     if upload is not None:
         if db_tool.user_id != user.id:
             raise HTTPException(status_code=404, detail="Model does not belong to you.")
-        tool = tools.create_tool(user.id, *upload)
-        build = await validate_model(tool, temp_dir)
+        tool = await _create_tool(user.id, upload)
+        build = await validate_model(tool)
         db_tool.name = tool.name
         db_tool.code = tool.code
         db_tool.arguments = tool.arguments

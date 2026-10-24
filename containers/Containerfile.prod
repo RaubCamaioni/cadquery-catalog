@@ -1,29 +1,12 @@
-# Production app image: systemd as PID 1, the web app as a user service of `podman`,
-# and a nested rootless podman that runs each tool in its own sandbox container.
-# Design and the reasons behind every knob: docs/superpowers/specs/2026-10-19-podman-sandbox-runner-design.md
+# Production app image: the CadQuery Catalog on the sandboxcore base image, which provides systemd as PID 1, the
+# `podman` user with delegated cgroups, and the nested rootless podman that runs each tool in its own
+# sandbox container (sandboxcore: system/image/Containerfile.base and system/README.md).
 #
-# Run it with: --device /dev/fuse --security-opt unmask=ALL (see the spec's host section).
+# Run it with: --device /dev/fuse --security-opt unmask=ALL (see sandboxcore's system/README.md).
+# Check it: podman exec --user podman -e XDG_RUNTIME_DIR=/run/user/1000 <name> sandboxcore-doctor
 
-FROM registry.access.redhat.com/ubi9/ubi-init
-
-RUN dnf install -y podman fuse-overlayfs shadow-utils python3.12 python3.12-pip && dnf clean all
-
-# Unprivileged user that runs the app and the inner podman. Its sub-UID range must fit inside
-# the 65536 UIDs the container receives. newuidmap keeps its file capability: do not setuid it.
-RUN useradd -u 1000 -m podman && usermod -p "*" podman && \
-  echo "podman:2000:60000" > /etc/subuid && echo "podman:2000:60000" > /etc/subgid && \
-  mkdir -p /var/lib/systemd/linger && touch /var/lib/systemd/linger/podman
-
-# systemd user manager for `podman`: started at boot, all controllers delegated
-COPY containers/app/user@.service.d-container.conf /etc/systemd/system/user@.service.d/container.conf
-RUN mkdir -p /etc/systemd/system/multi-user.target.wants && \
-  ln -s /usr/lib/systemd/system/user@.service /etc/systemd/system/multi-user.target.wants/user@1000.service
-
-# inner podman configuration
-COPY containers/app/containers.conf.d-nested.conf /etc/containers/containers.conf.d/nested.conf
-COPY --chown=podman:podman containers/app/storage.conf /home/podman/.config/containers/storage.conf
-# the inner image store is a named volume; podman gives a new volume this directory's ownership
-RUN mkdir -p /home/podman/.local/share/containers && chown -R podman:podman /home/podman/.local
+# the same version as the sandboxcore pin in server/pyproject.toml
+FROM docker.io/raubcamaioni/sandboxcore-base:0.1.0
 
 # the commit the image was built from, shown bottom-right on every page (CI passes GIT_SHA).
 # A file, not ENV: the app is a systemd user service and does not inherit the container environment.
@@ -41,11 +24,7 @@ RUN /venvs/server/bin/pip install --no-cache-dir --no-deps /tmp/server && \
 
 # the app as a systemd user service of `podman`
 COPY --chown=podman:podman containers/app/catalog.service /home/podman/.config/systemd/user/catalog.service
-RUN mkdir -p /home/podman/.config/systemd/user/default.target.wants && \
-  ln -s ../catalog.service /home/podman/.config/systemd/user/default.target.wants/catalog.service && \
-  chown -R podman:podman /home/podman/.config && \
-  mkdir -p /data && chown podman:podman /data
+RUN ln -s ../catalog.service /home/podman/.config/systemd/user/default.target.wants/catalog.service && \
+  chown -R podman:podman /home/podman/.config
 
-STOPSIGNAL SIGRTMIN+3
 EXPOSE 8080
-CMD ["/sbin/init"]

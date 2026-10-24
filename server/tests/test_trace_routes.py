@@ -1,5 +1,6 @@
 from app.routes import tools as tools_routes
-from app.utility.podman_runner import Outcome, RunResult, SandboxBusy
+from sandboxcore.host import Outcome, SandboxBusy
+from sandboxcore.host.podman import RunResult
 
 from tests.test_tool_routes import BUILD, StubRunner, client, public_tool  # noqa: F401  (fixture)
 
@@ -12,7 +13,9 @@ def events(body: str) -> list[str]:
 
 def test_trace_stream_emits_lines_then_end(monkeypatch, public_tool):
     class Runner(StubRunner):
-        async def run(self, tool, run_dir, on_line=None):
+        async def run(self, tool, run_dir, on_line=None, runtime_args=()):
+            if runtime_args:  # --inspect: the real runtime, as StubRunner does it
+                return await super().run(tool, run_dir, on_line, runtime_args)
             on_line(1)
             on_line(2)
             return await super().run(tool, run_dir)
@@ -103,7 +106,9 @@ def test_tool_argument_named_trace_keeps_the_users_value(monkeypatch, tmp_path):
     env = tools_routes.ENVIRONMENT
     monkeypatch.setattr(tools_routes, "ENVIRONMENT", dataclasses.replace(env, sandbox=dataclasses.replace(env.sandbox, run_dir=tmp_path)))
     class ArgsRunner(StubRunner):  # the run directory is removed once the request ends: read args during the run
-        async def run(self, tool, run_dir, on_line=None):
+        async def run(self, tool, run_dir, on_line=None, runtime_args=()):
+            if runtime_args:  # --inspect: the real runtime, as StubRunner does it
+                return await super().run(tool, run_dir, on_line, runtime_args)
             self.args = json.loads((run_dir / "args.json").read_text())
             return await super().run(tool, run_dir, on_line)
 

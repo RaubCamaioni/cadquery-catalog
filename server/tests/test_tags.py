@@ -1,6 +1,7 @@
 import html
 
 from app.models import tools as db
+from tests.test_tool_routes import create_tool
 from app.metadata.categories import Categories
 from app.metadata.tags import Tags
 
@@ -58,7 +59,7 @@ def test_search_within_category(session_with_models):
 
 
 def test_line_one_is_no_longer_read_as_tags():
-    tool = db.create_tool(1, "demo", "# a, b\n\n\ndef demo(x: int = 1) -> int:\n    return x\n")
+    tool = create_tool(1, "demo", "# a, b\n\n\ndef demo(x: int = 1) -> int:\n    return x\n")
     assert "tags" not in db.Tool.model_fields and tool.code.startswith("# a, b\n")  # kept as a plain comment
 
 

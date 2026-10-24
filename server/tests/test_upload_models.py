@@ -13,7 +13,8 @@ from app import ENVIRONMENT
 from app.app import app
 from app.models import tools as db
 from app.routes import tools as tools_routes
-from app.utility.podman_runner import Outcome, RunResult
+from sandboxcore.host import Outcome, Sandbox
+from sandboxcore.host.podman import RunResult
 
 from tests.test_auth_routes import github  # noqa: F401  (fixture)
 from tests.test_tool_routes import StubRunner, built
@@ -24,7 +25,9 @@ MODEL = "# box\n\nimport cadquery as cq\n\n\ndef demo_box(size: float = 10) -> c
 class BuildingRunner(StubRunner):
     """Writes the files a real sandbox run would leave in the run directory."""
 
-    async def run(self, tool, run_dir, on_line=None):
+    async def run(self, tool, run_dir, on_line=None, runtime_args=()):
+        if runtime_args:  # --inspect: the real runtime, as StubRunner does it
+            return await super().run(tool, run_dir, on_line, runtime_args)
         result = await super().run(tool, run_dir, on_line)
         # the run directory is removed when the test client's loop closes: keep what the app sent
         self.args = json.loads((Path(run_dir) / "args.json").read_text())
@@ -63,7 +66,7 @@ def _env(env, tmp_path):
 
 
 def upload(c, monkeypatch, runner, code=MODEL, name="demo_box.py"):
-    monkeypatch.setattr(tools_routes, "runner", runner)
+    monkeypatch.setattr(tools_routes, "sandbox", Sandbox(tools_routes.ENVIRONMENT.sandbox, runner=runner))
     return c.post("/manage/model/upload", files={"file": (name, code.encode(), "text/x-python")})
 
 
@@ -109,8 +112,8 @@ def test_optional_file_parameter_validates_with_none_and_runs_with_the_upload(mo
     code = "# tag\n\nfrom pathlib import Path\nimport cadquery as cq\n\n\ndef relief(image: Path = None, size: float = 40) -> cq.Workplane:\n    return cq.Workplane().box(size, size, 2)\n"
     r = upload(logged_in, monkeypatch, runner, code=code, name="relief.py")
     assert r.status_code == 200, r.text
-    # the validation build ran with image=None
-    assert runner.args["image"] is None and runner.args["size"] == 40
+    # the validation build passed no values: the model's own defaults (image=None, size=40) built the demo
+    assert runner.args == {}
     with db.Session(db.engine) as session:
         model_id = session.exec(db.select(db.Tool).where(db.Tool.name == "relief")).first().id
     # a run with a file: it is saved under the run directory's inputs/<argument>/ and passed as a path

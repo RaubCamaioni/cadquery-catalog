@@ -57,10 +57,15 @@ Sample models are in `models/`.
 
 ## Repository layout
 
+The sandbox core (podman runner, limits, outcomes, trace channel, run-directory helpers, the annotation
+allow-list and the in-sandbox runner) is the shared package
+[sandboxcore](https://github.com/RaubCamaioni/sandboxcore), also used by PyTools.
+Both `server/pyproject.toml` and `sandbox/pyproject.toml` pin the same release tag; bump them together.
+
 | Path | Contents |
 |---|---|
 | `server/` | The FastAPI application: routes, SQLModel database, templates, static assets, tests. |
-| `sandbox/` | The runtime that builds one model inside its container: argument loading, the export of STL, STEP, SVG preview and measurements, line tracing. |
+| `sandbox/` | The runtime that builds one model inside its container: the sandboxcore runner (argument loading, line tracing) with the export of STL, STEP, SVG preview and measurements as its finish step. |
 | `containers/` | `Containerfile.prod` (the app image) and `Containerfile.sandbox` (the runtime image with CadQuery). |
 | `models/` | Sample models. |
 | `docs/` | The design spec and the sandbox runner's design documents inherited from PyTools. |

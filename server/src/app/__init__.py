@@ -1,12 +1,11 @@
 from fastapi.templating import Jinja2Templates
 from pathlib import Path
-import string
 import logging
 import os
 from dataclasses import dataclass, field
 from typing import Optional
 
-from app.utility.sandbox_config import SandboxConfig
+from sandboxcore.host import SandboxConfig
 
 
 REQUIRED_ENVIRONMENT = ("SESSION_KEY", "DATABASE")
@@ -27,7 +26,11 @@ class _ENVIRONMENT:
     # the default STL and STEP of every model (from its validation run) live here, beside the database
     MODELS_DIR: Path = Path(os.environ.get("MODELS_DIR") or (Path(os.environ.get("DATABASE") or "/data/db").parent / "models"))
     # SANDBOX_* variables all have defaults; see SandboxConfig
-    sandbox: SandboxConfig = field(default_factory=lambda: SandboxConfig.from_environment(os.environ))
+    sandbox: SandboxConfig = field(
+        default_factory=lambda: SandboxConfig.from_environment(
+            os.environ, image="docker.io/raubcamaioni/cadquery-catalog-sandbox:latest", run_dir="/tmp/pywebtools-runs"
+        )
+    )
 
     def __post_init__(self):
         for name in REQUIRED_ENVIRONMENT:
@@ -37,7 +40,6 @@ class _ENVIRONMENT:
 
 ENVIRONMENT = _ENVIRONMENT()
 
-ALLOWED_CHARACTERS = string.ascii_letters + string.digits + "-_"
 APP_DIRECTORY = Path(__file__).parent
 def _root_path(request) -> dict:
     """Every template gets `root_path`, the prefix the app is mounted at, to build its URLs with."""

@@ -8,7 +8,8 @@ from fastapi.testclient import TestClient
 
 from app.app import app
 from app.routes import tools as tools_routes
-from app.utility.podman_runner import Outcome, RunResult
+from sandboxcore.host import Outcome, Sandbox
+from sandboxcore.host.podman import RunResult
 
 from tests.test_auth_routes import FakeGitHub, github  # noqa: F401  (fixture)
 from tests.test_tool_routes import StubRunner, public_tool  # noqa: F401  (fixture)
@@ -17,7 +18,7 @@ PREFIX = "/models"
 
 
 def prefixed_client(monkeypatch, runner=None):
-    monkeypatch.setattr(tools_routes, "runner", runner or StubRunner())
+    monkeypatch.setattr(tools_routes, "sandbox", Sandbox(tools_routes.ENVIRONMENT.sandbox, runner=runner or StubRunner()))
     return TestClient(app, root_path=PREFIX)
 
 
@@ -43,7 +44,7 @@ def test_tool_page_and_result_links_carry_the_prefix(monkeypatch, public_tool):
     assert unprefixed_urls(page) == []
     assert f'new EventSource("{PREFIX}/trace/"' in page and f"""a[href^="{PREFIX}/download/"]""" in page
     result = c.post(PREFIX + "/model/8", headers={"HX-Request": "true"}).text
-    run = PREFIX + "/download" + runner.calls[-1][1].as_posix()
+    run = PREFIX + "/download/" + runner.calls[-1][1].name
     assert f'<stl-viewer url="{run}/model.stl">' in result
     assert f'href="{run}/model.step"' in result
 
@@ -69,6 +70,6 @@ def test_listing_pages_and_their_loader_carry_the_prefix(monkeypatch, public_too
 
 
 def test_without_a_prefix_nothing_changes(monkeypatch, public_tool):
-    monkeypatch.setattr(tools_routes, "runner", StubRunner())
+    monkeypatch.setattr(tools_routes, "sandbox", Sandbox(tools_routes.ENVIRONMENT.sandbox, runner=StubRunner()))
     page = TestClient(app).get("/").text
     assert 'href="/static/output.css' in page and 'hx-post="/models' in page
