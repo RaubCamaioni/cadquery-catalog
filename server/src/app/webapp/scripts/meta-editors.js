@@ -178,11 +178,16 @@
         }
     }
 
-    // the category the typed text names, if exactly one leaf matches it
+    // the category the typed text names: the leaf whose name ("Kitchen" in "Home › Kitchen") or whole label
+    // it is, else the one leaf that contains it
     function onlyMatch(editor, input) {
         const typed = input.value.trim().toLowerCase();
-        const leaves = JSON.parse(editor.dataset.choices).filter(([, label]) => label.toLowerCase().includes(typed));
-        return typed && leaves.length === 1 ? {dataset: {value: leaves[0][0], label: leaves[0][1]}} : null;
+        if (!typed) return null;
+        const leaves = JSON.parse(editor.dataset.choices);
+        const named = leaves.filter(([, label]) =>
+            label.toLowerCase() === typed || label.split("›").pop().trim().toLowerCase() === typed);
+        const found = named.length === 1 ? named : leaves.filter(([, label]) => label.toLowerCase().includes(typed));
+        return found.length === 1 ? {dataset: {value: found[0][0], label: found[0][1]}} : null;
     }
 
     document.addEventListener("focusin", e => {
@@ -215,8 +220,12 @@
             else { addTyped(editor, input); close(editor); }
         } else {
             const choice = option || onlyMatch(editor, input);
-            if (choice) pick(editor, choice);
-            else note(editor, "pick one of the listed categories");
+            if (choice) { pick(editor, choice); return; }
+            // nothing to add yet: open the list to choose from
+            const typed = input.value.trim();
+            note(editor, typed ? `no single category matches "${typed}": choose one from the list` : "choose a category from the list");
+            input.focus();
+            refresh(editor, input);
         }
     }
 
@@ -241,6 +250,8 @@
 
     // mousedown, not click: it lands before the box loses focus and the menu closes
     document.addEventListener("mousedown", e => {
+        // [+] must not take the focus either, or the menu (and its highlighted choice) is gone by the click
+        if (e.target.closest(".meta-add")) { e.preventDefault(); return; }
         const option = e.target.closest(".meta-option");
         if (!option) return;
         e.preventDefault();
