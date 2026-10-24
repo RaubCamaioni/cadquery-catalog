@@ -5,7 +5,15 @@
     .meta-chip { display: inline-flex; align-items: center; gap: 0.25rem; border: 1px solid currentColor; padding: 0 0.25rem; }
     .meta-chip:first-child .meta-chip-label::before { content: var(--meta-first, ""); opacity: 0.6; }
     .meta-editor[data-ordered] { --meta-first: "primary: "; }
-    .meta-field { flex: 1 1 12ch; min-width: 12ch; }
+    .meta-field { flex: 1 1 12ch; min-width: 12ch; position: relative; }
+    .meta-chip[title] { cursor: pointer; }
+    /* the editors' dropdown: under the box, above whatever follows */
+    .meta-menu { position: absolute; top: 100%; left: 0; z-index: 20; min-width: 100%; max-height: 14rem;
+        overflow-y: auto; margin: 0; padding: 0; list-style: none; background: var(--color-ink);
+        border: 1px solid var(--color-line); white-space: nowrap; }
+    .meta-option { padding: 0 0.5rem; cursor: pointer; }
+    .meta-option:hover, .meta-option-active { background: var(--color-paper); color: var(--color-ink); }
+    .meta-option-active .text-dim, .meta-option:hover .text-dim { color: var(--color-ink); }
     .meta-display { display: flex; flex-wrap: wrap; gap: 0.25rem 0.75rem; }
     /* the description reads first, on a line of its own, even though it is the last kind */
     .meta-description { order: -1; flex-basis: 100%; white-space: pre-wrap; margin: 0; }

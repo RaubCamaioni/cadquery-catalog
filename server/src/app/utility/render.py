@@ -187,7 +187,7 @@ def model_dialog(root_path: str, model_id: Optional[int], name: Optional[str], v
     )
 
 
-def list_item_user(root_path: str, tools: list[Tool], meta: Optional[dict[int, dict]] = None):
+def list_item_user(root_path: str, tools: list[Tool]):
     template: Template = TEMPLATES.get_template("components/update_tool_item.html")
     # the rows are cells of one grid (`ls -l | column -t`): the header row aligns with them
     htmlx = [
@@ -204,7 +204,6 @@ def list_item_user(root_path: str, tools: list[Tool], meta: Optional[dict[int, d
                 public="checked" if tool.public else "",
                 anonymous="checked" if tool.annonymous else "",
                 runs=format_runs(tool.usage),
-                categories=(meta or {}).get(tool.id, {}).get("categories", ["misc"]),
             )
         )
 

@@ -1,5 +1,6 @@
 {# tags editor: `tags` (list) are the current ones. Each chip holds a hidden `tags` input; `tags.present` tells
-   the server the editor was shown, so an emptied editor clears the tags. Typing suggests tags already in use. #}
+   the server the editor was shown, so an emptied editor clears the tags. The dropdown offers tags already in
+   use (most used first); Enter or a comma adds what was typed. #}
 <div class="meta-editor" data-kind="tags" data-free="1" data-max="10" data-suggest="{{ root_path }}/tags/suggest">
     <input type="hidden" name="tags.present" value="1">
     <span class="text-dim">tags:</span>
@@ -13,11 +14,9 @@
     <span class="field meta-field"><input
         class="meta-input"
         type="text"
-        list="tag-suggestions-{{ editor_id }}"
         autocomplete="off"
         spellcheck="false"
-        placeholder="add a tag, Enter"
-        aria-label="add a tag"></span>
-    <datalist id="tag-suggestions-{{ editor_id }}"></datalist>
+        placeholder="add a tag"
+        aria-label="add a tag"><ul class="meta-menu" role="listbox" hidden></ul></span>
     <span class="meta-note text-dim"></span>
 </div>

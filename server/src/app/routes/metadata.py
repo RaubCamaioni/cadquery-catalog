@@ -66,10 +66,7 @@ async def edit_dialog(request: Request, id: int, session: SessionDep):
     return HTMLResponse(render.model_dialog(request.scope.get("root_path"), model.id, model.name, values))
 
 
-@router.get("/tags/suggest", response_class=HTMLResponse)
+@router.get("/tags/suggest")
 async def tag_suggestions(session: SessionDep, q: str = ""):
-    """<option>s for the tag editor's datalist: tags in use on public models, most used first."""
-    from html import escape
-
-    options = [f'<option value="{escape(tag)}">{escape(tag)} · {count}</option>' for tag, count in suggest(session, q)]
-    return HTMLResponse("\n".join(options))
+    """The tag editor's dropdown: tags in use on public models that start with `q`, most used first."""
+    return [{"tag": tag, "count": count} for tag, count in suggest(session, q)]
