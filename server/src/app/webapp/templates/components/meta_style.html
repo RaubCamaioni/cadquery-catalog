@@ -1,23 +1,28 @@
 {# metadata editors and displays; inline because output.css is a Tailwind build only rebuilt on the server #}
 <style>
-    .meta-editor { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 0.5rem; }
-    .meta-chips { display: contents; }
+    /* an editor: its label, the entry row (box + [+]), the chosen items in a box of their own, a footer */
+    .meta-editor { display: flex; flex-direction: column; align-items: stretch; gap: 0.25rem; }
+    .meta-entry { display: flex; align-items: center; gap: 0.5rem; }
+    /* the chosen items wrap inside a fixed-height box that scrolls, so the entry row never gets squeezed */
+    .meta-chips { display: flex; flex-wrap: wrap; align-content: flex-start; gap: 0.25rem 0.5rem; padding: 0.25rem;
+        border: 1px solid var(--color-line); min-height: 2rem; max-height: 6.5rem; overflow-y: auto; }
+    .meta-chips:not(:has(.meta-chip))::before { content: attr(data-empty); color: var(--color-dim); }
+    .meta-foot { display: flex; justify-content: space-between; gap: 1rem; min-height: 1lh; }
     .meta-chip { display: inline-flex; align-items: center; gap: 0.25rem; border: 1px solid currentColor; padding: 0 0.25rem; }
     .meta-chip:first-child .meta-chip-label::before { content: var(--meta-first, ""); opacity: 0.6; }
     .meta-editor[data-ordered] { --meta-first: "primary: "; }
-    .meta-field { flex: 1 1 12ch; min-width: 12ch; position: relative; }
+    .meta-field { flex: 1 1 auto; min-width: 12ch; position: relative; }
     .meta-chip[title] { cursor: pointer; }
-    /* the editors' dropdown: under the box, above whatever follows */
-    .meta-menu { position: absolute; top: 100%; left: 0; z-index: 20; min-width: 100%; max-height: 14rem;
-        overflow-y: auto; margin: 0; padding: 0; list-style: none; background: var(--color-ink);
-        border: 1px solid var(--color-line); white-space: nowrap; }
+    /* the editors' dropdown, fixed to the viewport (placed by meta-editors.js): the dialog scrolls, and an
+       absolutely positioned list inside it would be cut off at its edge */
+    .meta-menu { position: fixed; z-index: 20; overflow-y: auto; margin: 0; padding: 0; list-style: none;
+        background: var(--color-ink); border: 1px solid var(--color-line); white-space: nowrap; }
     .meta-option { padding: 0 0.5rem; cursor: pointer; }
     .meta-option:hover, .meta-option-active { background: var(--color-paper); color: var(--color-ink); }
     .meta-option-active .text-dim, .meta-option:hover .text-dim { color: var(--color-ink); }
     .meta-display { display: flex; flex-wrap: wrap; gap: 0.25rem 0.75rem; }
     /* the description reads first, on a line of its own, even though it is the last kind */
     .meta-description { order: -1; flex-basis: 100%; white-space: pre-wrap; margin: 0; }
-    .meta-description-editor { flex-direction: column; align-items: stretch; }
     .meta-description-editor textarea { width: 100%; background: transparent; color: inherit; border: 1px solid currentColor; font: inherit; padding: 0.25rem; }
     /* the profile's create/edit dialog: a bordered terminal window over a dimmed page */
     /* margin: auto centres it again (the base reset zeroes every margin, which pins a dialog top-left) */

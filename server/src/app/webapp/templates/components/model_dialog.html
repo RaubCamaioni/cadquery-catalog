@@ -26,10 +26,11 @@
     {% for kind in kinds if kind.key != "description" %}{% include kind.editor_template %}{% endfor %}
     {% endwith %}
 
+    {# messages on the left; [cancel] then [save] (or [create]) at the bottom right #}
     <div class="flex items-center gap-2">
-        <button type="submit" class="hover:bg-paper hover:text-ink">{% if model_id %}[save]{% else %}[create]{% endif %}</button>
-        <button type="button" class="text-dim hover:bg-paper hover:text-ink" _="on click call #model-dialog.close()">[cancel]</button>
         <span id="model-dialog-busy" class="htmx-indicator text-dim">building...</span>
-        <span id="model-dialog-error"></span>
+        <span id="model-dialog-error" class="flex-grow"></span>
+        <button type="button" class="text-dim hover:bg-paper hover:text-ink" _="on click call #model-dialog.close()">[cancel]</button>
+        <button type="submit" class="hover:bg-paper hover:text-ink">{% if model_id %}[save]{% else %}[create]{% endif %}</button>
     </div>
 </form>

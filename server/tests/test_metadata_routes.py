@@ -195,11 +195,15 @@ def test_edit_dialog_is_filled_with_the_current_values(monkeypatch, logged_in):
     assert "replaces the code" not in page and "[&lt;]" not in page and "<datalist" not in page
     assert 'title="click to make this the primary category"' in page and "home/kitchen" in page  # the choices
     assert "[save]" in page and "[cancel]" in page
+    assert page.index("[cancel]") < page.index("[save]")  # [save] is the rightmost button
+    assert page.count('class="meta-add') == 2 and page.count('class="meta-chips"') == 2  # [+] and a box per editor
+    assert 'data-empty="no tags yet"' in page
 
 
 def test_create_dialog_is_empty_and_needs_a_file(monkeypatch, logged_in):
     page = logged_in.get("/manage/model/create").text
     assert 'hx-post="/manage/model/upload"' in page and "[create]" in page
+    assert page.index("[cancel]") < page.index("[create]")
     assert "required" in page.split('name="file"')[1].split(">")[0]
     assert 'name="tags.present"' in page and 'name="categories.present"' in page and 'name="description.present"' in page
     assert TestClient(app).get("/manage/model/create").status_code == 404
